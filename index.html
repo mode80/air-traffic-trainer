@@ -213,21 +213,6 @@
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5 flex-grow">
                     <h2 class="text-xl font-semibold mb-3">Flight Information</h2>
                     
-                    <!-- Airport and Diagram -->
-                    <div class="mb-4">
-                        <div class="flex gap-3 mb-3">
-                            <div class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md flex-1">
-                                <p class="text-sm opacity-75">Airport</p>
-                                <p id="airport" class="font-medium">KJFK - John F. Kennedy International</p>
-                            </div>
-                            <div class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md">
-                                <p class="text-sm opacity-75">Airport Type</p>
-                                <p id="airport-type" class="font-medium">Towered</p>
-                            </div>
-                        </div>
-                        <div class="airport-diagram" id="airport-diagram"></div>
-                    </div>
-                    
                     <!-- Aircraft Info -->
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md">
@@ -241,9 +226,24 @@
                     </div>
                     
                     <!-- Weather Information (shown only when weatherInfo is available) -->
-                    <div id="weather-container" class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md">
+                    <div id="weather-container" class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md mb-4">
                         <p class="text-sm opacity-75">Weather Information</p>
                         <p id="weather-info" class="font-medium">Loading weather information...</p>
+                    </div>
+                    
+                    <!-- Airport and Diagram -->
+                    <div class="mb-4">
+                        <div class="flex gap-3 mb-3">
+                            <div class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md flex-1">
+                                <p class="text-sm opacity-75">Airport</p>
+                                <p id="airport" class="font-medium">KJFK - John F. Kennedy International</p>
+                            </div>
+                            <div class="p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md">
+                                <p class="text-sm opacity-75">Airport Type</p>
+                                <p id="airport-type" class="font-medium">Towered</p>
+                            </div>
+                        </div>
+                        <div class="airport-diagram" id="airport-diagram"></div>
                     </div>
                 </div>
             </div>
@@ -261,7 +261,6 @@
                             class="flex-grow p-2 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)]">
                         <button id="save-api-key" class="ml-2 bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors">Save</button>
                     </div>
-                    <p class="text-xs mt-1 opacity-75">Required for speech-to-text transcription and text generation. Your API key is only stored locally in your browser.</p>
                 </div>
             </div>
             <!-- Super minimal API key status - shown when API key is present -->
