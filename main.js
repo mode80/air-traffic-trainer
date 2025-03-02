@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.evaluationManager = new EvaluationManager();
     window.apiKeyManager = new ApiKeyManager();
     
-    // Set up input mode toggle event listeners
-    document.getElementById('text-mode-btn').addEventListener('click', () => window.toggleInputMode('text'));
-    document.getElementById('audio-mode-btn').addEventListener('click', () => window.toggleInputMode('audio'));
+    // No input mode toggle needed with the new UI design
     
     // Generate initial scenario
     window.scenarioManager.generateScenario();

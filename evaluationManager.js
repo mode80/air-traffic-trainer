@@ -16,8 +16,7 @@ class EvaluationManager {
         this.submitResponseBtn = document.getElementById('submit-response-btn');
         this.clearResponseBtn = document.getElementById('clear-response-btn');
         
-        // Audio input elements
-        this.submitAudioBtn = document.getElementById('submit-audio-btn');
+        // No separate audio input elements in the new UI design
         
         // Initialize
         this.init();
@@ -61,7 +60,6 @@ class EvaluationManager {
         this.feedbackLoading.classList.remove('hidden');
         this.feedbackContent.classList.add('hidden');
         this.submitResponseBtn.disabled = true;
-        if (isAudio) this.submitAudioBtn.disabled = true;
         
         try {
             // Get API key
@@ -73,7 +71,6 @@ class EvaluationManager {
                 // Hide feedback section
                 this.feedbackContainer.classList.add('hidden');
                 this.submitResponseBtn.disabled = false;
-                if (isAudio) this.submitAudioBtn.disabled = false;
                 return;
             }
             
@@ -225,9 +222,8 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
         // Update correct response example
         this.correctResponse.textContent = feedbackData.correctExample;
         
-        // Re-enable buttons
+        // Re-enable button
         this.submitResponseBtn.disabled = false;
-        this.submitAudioBtn.disabled = false;
     }
 
     // Display error feedback
@@ -262,9 +258,8 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
         
         this.correctResponse.textContent = "N/A";
         
-        // Re-enable buttons
+        // Re-enable button
         this.submitResponseBtn.disabled = false;
-        this.submitAudioBtn.disabled = false;
     }
 }
 

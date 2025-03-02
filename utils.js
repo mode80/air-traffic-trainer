@@ -65,43 +65,6 @@ window.showApiKeyInfo = function() {
     });
 };
 
-// Toggle between text and audio input modes
-window.toggleInputMode = function(mode) {
-    const textModeBtn = document.getElementById('text-mode-btn');
-    const audioModeBtn = document.getElementById('audio-mode-btn');
-    const textInputContainer = document.getElementById('text-input-container');
-    const audioInputContainer = document.getElementById('audio-input-container');
-    
-    if (mode === 'text') {
-        textModeBtn.classList.add('bg-[var(--primary)]', 'text-white');
-        textModeBtn.classList.remove('bg-transparent', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
-        
-        audioModeBtn.classList.remove('bg-[var(--primary)]', 'text-white');
-        audioModeBtn.classList.add('bg-transparent', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
-        
-        textInputContainer.classList.remove('hidden');
-        audioInputContainer.classList.add('hidden');
-    } else { // audio mode
-        // Check if microphone is initialized
-        if (!window.microphoneInitialized) {
-            // Show the permission modal
-            window.showMicrophonePermissionModal();
-            return;
-        }
-        
-        audioModeBtn.classList.add('bg-[var(--primary)]', 'text-white');
-        audioModeBtn.classList.remove('bg-transparent', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
-        
-        textModeBtn.classList.remove('bg-[var(--primary)]', 'text-white');
-        textModeBtn.classList.add('bg-transparent', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
-        
-        audioInputContainer.classList.remove('hidden');
-        textInputContainer.classList.add('hidden');
-        
-        // Reset audio recording UI
-        window.resetAudioRecording();
-    }
-};
 
 // Generate a simple airport diagram
 window.generateAirportDiagram = function(container, isTowered) {

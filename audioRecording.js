@@ -4,21 +4,17 @@ class AudioRecorder {
     constructor() {
         // DOM Elements
         this.recordBtn = document.getElementById('record-btn');
+        this.stopRecordingBtn = document.getElementById('stop-recording-btn');
         this.recordingIndicator = document.getElementById('recording-indicator');
-        this.audioControls = document.getElementById('audio-controls');
         this.audioPlayback = document.getElementById('audio-playback');
         this.audioPlayer = document.getElementById('audio-player');
-        this.recordAgainBtn = document.getElementById('record-again-btn');
-        this.submitAudioBtn = document.getElementById('submit-audio-btn');
-        this.transcriptionContainer = document.getElementById('transcription-container');
-        this.transcriptionText = document.getElementById('transcription-text');
-        this.micUnavailable = document.getElementById('mic-unavailable');
+        this.userResponseTextarea = document.getElementById('user-response');
+        this.transcriptionProcessing = document.getElementById('transcription-processing');
         
         // Permission elements
         this.permissionModal = document.getElementById('permission-modal');
         this.allowMicBtn = document.getElementById('allow-mic-btn');
         this.denyMicBtn = document.getElementById('deny-mic-btn');
-        this.requestMicBtn = document.getElementById('request-mic-btn');
         
         // Audio recording variables
         this.mediaRecorder = null;
@@ -45,55 +41,56 @@ class AudioRecorder {
         
         this.denyMicBtn.addEventListener('click', () => {
             this.permissionModal.classList.add('hidden');
-            window.toggleInputMode('text');
         });
         
-        this.requestMicBtn.addEventListener('click', () => {
-            window.showMicrophonePermissionModal();
-        });
-        
-        // Audio recording controls
+        // Record button handler
         this.recordBtn.addEventListener('click', () => {
-            if (!this.mediaRecorder) {
-                window.showToast('Microphone not initialized. Please enable microphone access.', true);
+            if (!window.microphoneInitialized) {
+                // Show permission modal if microphone not initialized
+                window.showMicrophonePermissionModal();
                 return;
             }
             
             if (this.isRecording) {
-                this.mediaRecorder.stop();
+                this.stopRecording();
             } else {
-                // Reset UI first
-                this.resetAudioRecording();
-                
-                // Start recording
-                try {
-                    this.mediaRecorder.start();
-                } catch (err) {
-                    console.error("Error starting recording:", err);
-                    window.showToast('Error starting recording. Please try again.', true);
-                }
+                this.startRecording();
             }
         });
         
-        this.recordAgainBtn.addEventListener('click', () => {
-            this.resetAudioRecording();
-        });
-        
-        this.submitAudioBtn.addEventListener('click', () => {
-            const transcriptionContent = this.transcriptionText.textContent.trim();
-            if (transcriptionContent && transcriptionContent !== 'Transcription will appear here...') {
-                // Get the formatted text if available, otherwise use the original text
-                const formattedDiv = this.transcriptionText.querySelector('div:nth-child(2) > p:nth-child(2)');
-                const originalDiv = this.transcriptionText.querySelector('div:nth-child(1) > p:nth-child(2)');
-                
-                const textToSubmit = formattedDiv ? formattedDiv.textContent : 
-                                    (originalDiv ? originalDiv.textContent : transcriptionContent);
-                
-                window.evaluateResponse(textToSubmit, true);
-            } else {
-                window.showToast('Please wait for transcription to complete before submitting', true);
+        // Stop recording button handler
+        this.stopRecordingBtn.addEventListener('click', () => {
+            if (this.isRecording) {
+                this.stopRecording();
             }
         });
+    }
+    
+    // Start recording
+    startRecording() {
+        if (!this.mediaRecorder) {
+            window.showToast('Microphone not initialized. Please enable microphone access.', true);
+            return;
+        }
+        
+        // Reset UI first
+        this.resetAudioRecording();
+        
+        // Start recording
+        try {
+            this.mediaRecorder.start();
+            this.recordingIndicator.classList.remove('hidden');
+        } catch (err) {
+            console.error("Error starting recording:", err);
+            window.showToast('Error starting recording. Please try again.', true);
+        }
+    }
+    
+    // Stop recording
+    stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+        }
     }
     
     // Request microphone permission
@@ -108,31 +105,20 @@ class AudioRecorder {
             // If we got here, permission was granted
             this.initAudioRecording(stream);
             
-            // Update UI
-            this.micUnavailable.classList.add('hidden');
-            this.audioControls.classList.remove('hidden');
-            
             // Set flag
             window.microphoneInitialized = true;
             
-            // Enable audio mode button
-            document.getElementById('audio-mode-btn').disabled = false;
+            // Update record button style to show it's enabled
+            this.recordBtn.classList.remove('opacity-50');
             
-            // Automatically switch to audio mode
-            window.toggleInputMode('audio');
+            // Show toast notification
+            window.showToast('Microphone access granted. Click the microphone button to record.', false);
             
         } catch (err) {
             console.error("Error accessing microphone:", err);
             
-            // Update UI to show error
-            this.micUnavailable.classList.remove('hidden');
-            this.audioControls.classList.add('hidden');
-            
             // Show error message
             window.showToast('Could not access microphone. Check your browser permissions.', true);
-            
-            // Switch back to text mode
-            window.toggleInputMode('text');
         }
     }
     
@@ -210,25 +196,16 @@ class AudioRecorder {
     // Update UI during recording
     updateRecordingUI(isRecording) {
         if (isRecording) {
-            this.recordBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                </svg>
-                Stop Recording
-            `;
+            // Change record button to red
             this.recordBtn.classList.remove('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
             this.recordBtn.classList.add('bg-[var(--recording)]', 'hover:bg-red-600');
-            this.recordingIndicator.classList.remove('hidden');
         } else {
-            this.recordBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                Start Recording
-            `;
+            // Reset record button to primary color
             this.recordBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
             this.recordBtn.classList.remove('bg-[var(--recording)]', 'hover:bg-red-600');
+            
+            // Hide recording indicator
+            this.recordingIndicator.classList.add('hidden');
         }
     }
     
@@ -236,7 +213,7 @@ class AudioRecorder {
     resetAudioRecording() {
         this.recordingIndicator.classList.add('hidden');
         this.audioPlayback.classList.add('hidden');
-        this.transcriptionContainer.classList.add('hidden');
+        this.transcriptionProcessing.classList.add('hidden');
         
         if (this.audioURL) {
             URL.revokeObjectURL(this.audioURL);
@@ -252,13 +229,14 @@ class AudioRecorder {
     // Transcribe audio using OpenAI's Speech-to-Text API
     async transcribeAudio(audioBlob) {
         try {
-            this.transcriptionText.textContent = "Processing audio...";
+            // Show transcription processing indicator
+            this.transcriptionProcessing.classList.remove('hidden');
             
             // Get API key from local storage
             let apiKey = localStorage.getItem('openai_api_key');
             
             if (!apiKey) {
-                this.transcriptionText.textContent = "OpenAI API key required for transcription.";
+                this.transcriptionProcessing.classList.add('hidden');
                 window.showToast("OpenAI API key required. Please add your API key in the settings section below.", true);
                 // Scroll to settings section
                 document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
@@ -288,19 +266,6 @@ class AudioRecorder {
             formData.append('language', 'en');
             formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology');
             
-            // Show loading state
-            this.transcriptionContainer.classList.remove('hidden');
-            this.transcriptionText.innerHTML = `
-                <div class="flex items-center">
-                    <div class="loading-dots mr-3">
-                        <span class="bg-[var(--primary)]"></span>
-                        <span class="bg-[var(--primary)]"></span>
-                        <span class="bg-[var(--primary)]"></span>
-                    </div>
-                    <p>Transcribing with OpenAI...</p>
-                </div>
-            `;
-            
             // Call OpenAI API
             const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
                 method: 'POST',
@@ -313,7 +278,6 @@ class AudioRecorder {
             // Handle API response
             if (response.ok) {
                 const data = await response.json();
-                this.transcriptionText.textContent = data.text;
                 
                 // Format the transcription text specifically for aviation
                 let formattedText = data.text;
@@ -327,27 +291,14 @@ class AudioRecorder {
                     return `${p1Spoken} point ${p2Spoken}`;
                 });
                 
-                // Show both original and formatted
-                this.transcriptionText.innerHTML = `
-                    <div class="mb-2">
-                        <p class="text-sm font-medium opacity-75">Original Transcription:</p>
-                        <p>${data.text}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium opacity-75">Formatted for Radio:</p>
-                        <p>${formattedText}</p>
-                    </div>
-                    <div class="mt-4">
-                        <button id="use-transcription-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white text-sm font-medium py-1 px-3 rounded-md transition-colors">
-                            Use for Evaluation
-                        </button>
-                    </div>
-                `;
+                // Set the formatted text in the textarea
+                this.userResponseTextarea.value = formattedText;
                 
-                // Add event listener to use transcription button
-                document.getElementById('use-transcription-btn').addEventListener('click', () => {
-                    window.evaluateResponse(formattedText, true);
-                });
+                // Hide processing indicator
+                this.transcriptionProcessing.classList.add('hidden');
+                
+                // Show success message
+                window.showToast('Audio transcribed successfully', false);
                 
             } else {
                 const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
@@ -356,14 +307,18 @@ class AudioRecorder {
                 // Handle API key errors
                 if (response.status === 401) {
                     localStorage.removeItem('openai_api_key');
-                    this.transcriptionText.textContent = "Invalid OpenAI API key. Please try again with a valid key.";
+                    window.showToast('Invalid OpenAI API key. Please try again with a valid key.', true);
                 } else {
-                    this.transcriptionText.textContent = `Error transcribing audio: ${errorData.error?.message || 'Unknown error'}`;
+                    window.showToast(`Error transcribing audio: ${errorData.error?.message || 'Unknown error'}`, true);
                 }
+                
+                // Hide processing indicator
+                this.transcriptionProcessing.classList.add('hidden');
             }
         } catch (err) {
             console.error("Error transcribing audio:", err);
-            this.transcriptionText.textContent = "Error transcribing audio. Please try again.";
+            window.showToast("Error transcribing audio. Please try again.", true);
+            this.transcriptionProcessing.classList.add('hidden');
         }
     }
 }
