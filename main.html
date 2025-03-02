@@ -49,8 +49,10 @@
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5">
                     <div class="flex justify-between items-center mb-3">
                         <h2 class="text-xl font-semibold">Scenario</h2>
-                        <button id="new-scenario-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors text-sm">
-                            New Scenario
+                        <button id="new-scenario-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white flex items-center justify-center w-10 h-10 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
                         </button>
                     </div>
                     <div id="scenario-loading" class="flex items-center justify-center p-6">
@@ -125,10 +127,10 @@
                         
                         <div class="flex flex-wrap gap-3 mt-4">
                             <button id="submit-response-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                Evaluate Radio Call
+                                Submit 
                             </button>
-                            <button id="clear-response-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors">
-                                Clear Input
+                            <button id="show-answer-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors">
+                                Peek 
                             </button>
                         </div>
                     </div>

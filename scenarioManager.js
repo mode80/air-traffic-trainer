@@ -29,7 +29,8 @@ class ScenarioManager {
                 aircraft: "Cessna 172 Skyhawk",
                 tailNumber: "N5678P",
                 airport: "KPAO - Palo Alto Airport",
-                isTowered: true
+                isTowered: true,
+                correctResponse: "Palo Alto Ground, Skyhawk Five Six Seven Eight Papa at the main ramp with information Alpha, request taxi for eastbound departure."
             },
             {
                 title: "Traffic Advisory Response",
@@ -39,7 +40,8 @@ class ScenarioManager {
                 aircraft: "Cessna 172 Skyhawk",
                 tailNumber: "N71234",
                 airport: "KOAK - Oakland International Airport",
-                isTowered: true
+                isTowered: true,
+                correctResponse: "Oakland Approach, Cessna Seven One Two Three Four, looking for traffic."
             },
             {
                 title: "Position Report at Uncontrolled Airport",
@@ -49,7 +51,8 @@ class ScenarioManager {
                 aircraft: "Cessna 152",
                 tailNumber: "N98765",
                 airport: "KRHV - Reid-Hillview Airport", 
-                isTowered: false
+                isTowered: false,
+                correctResponse: "Reid-Hillview traffic, Cessna Niner Eight Seven Six Five, midfield downwind for runway two seven, Reid-Hillview."
             },
             {
                 title: "Emergency Declaration",
@@ -59,7 +62,8 @@ class ScenarioManager {
                 aircraft: "Piper Cherokee",
                 tailNumber: "N4567A",
                 airport: "KSFO - San Francisco International Airport",
-                isTowered: true
+                isTowered: true,
+                correctResponse: "San Francisco Center, Piper Four Five Six Seven Alpha, declaring an emergency, engine running rough due to suspected carburetor icing, twenty miles south of San Francisco at five thousand five hundred feet, request vectors to nearest suitable airport."
             }
         ];
         
@@ -151,10 +155,11 @@ Your generated scenario should match this exact JSON structure with all fields. 
 3. Don't repeat information in the description that's already present in other fields
    - Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
    - The user will see the weatherInfo and airport fields separately alongside the description
-4. Only include atcCall if there is actual ATC dialog
-5. Only include weatherInfo when relevant and otherwise leave it as an empty string
+4. Always include atcCall if an initial ATC call is relevant to the scenario 
+5. Always include weatherInfo when relevant 
 6. Choose appropriate aircraft types and real airports across the United States
 7. Use proper aviation terminology and phraseology
+8. ALWAYS include a correctResponse field with an example of the proper radio call for this scenario
 
 Generate only ONE scenario object that strictly follows the given structure. Return ONLY valid JSON with no additional explanations or markdown formatting. The entire response should be parseable with JSON.parse().`;
 

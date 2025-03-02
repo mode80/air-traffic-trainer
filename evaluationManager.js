@@ -14,7 +14,6 @@ class EvaluationManager {
         // Text input elements
         this.userResponseInput = document.getElementById('user-response');
         this.submitResponseBtn = document.getElementById('submit-response-btn');
-        this.clearResponseBtn = document.getElementById('clear-response-btn');
         
         // No separate audio input elements in the new UI design
         
@@ -36,9 +35,53 @@ class EvaluationManager {
             this.evaluateResponse(this.userResponseInput.value);
         });
         
-        this.clearResponseBtn.addEventListener('click', () => {
-            this.userResponseInput.value = '';
-        });
+        // Replace clearResponseBtn with showAnswerBtn
+        const showAnswerBtn = document.getElementById('show-answer-btn');
+        if (showAnswerBtn) {
+            showAnswerBtn.addEventListener('click', () => {
+                this.showCorrectExample();
+            });
+        }
+    }
+    
+    // New method to show the correct example without evaluation
+    showCorrectExample() {
+        // Get the current scenario
+        const currentScenario = window.scenarioManager.getCurrentScenario();
+        if (!currentScenario) {
+            window.showToast('No active scenario. Please generate a scenario first.', true);
+            return;
+        }
+        
+        // First, show the feedback container
+        this.feedbackContainer.classList.remove('hidden');
+        
+        // Hide the feedback loading section
+        this.feedbackLoading.classList.add('hidden');
+        
+        // Customize the feedback container to only show the correct response
+        // 1. Hide the feedback title (first h2 element in the container)
+        const feedbackTitle = this.feedbackContainer.querySelector('h2');
+        if (feedbackTitle) {
+            feedbackTitle.classList.add('hidden');
+        }
+        
+        // 2. Show the feedback content section that contains our elements
+        this.feedbackContent.classList.remove('hidden');
+        
+        // 3. Hide the score section
+        const scoreSection = this.scoreIndicator.parentElement.parentElement;
+        scoreSection.classList.add('hidden');
+        
+        // 4. Hide the feedback details section
+        this.feedbackDetails.parentElement.classList.add('hidden');
+        
+        // 5. Only show the correct response section
+        const correctResponseSection = this.correctResponse.parentElement.parentElement;
+        correctResponseSection.classList.remove('hidden');
+        
+        // 6. Get the correct example from the current scenario
+        this.correctResponse.textContent = currentScenario.correctResponse || "Example response not available for this scenario.";
     }
     
     // Evaluate user response using OpenAI's GPT-4o model
@@ -190,9 +233,27 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
 
     // Display feedback from evaluation
     displayFeedback(feedbackData) {
+        // Show the feedback container
+        this.feedbackContainer.classList.remove('hidden');
+        
+        // Restore the feedback title if it was hidden
+        const feedbackTitle = this.feedbackContainer.querySelector('h2');
+        if (feedbackTitle) {
+            feedbackTitle.classList.remove('hidden');
+        }
+        
         // Hide loading, show content
         this.feedbackLoading.classList.add('hidden');
         this.feedbackContent.classList.remove('hidden');
+        
+        // Make sure all feedback elements are visible (might have been hidden by showCorrectExample)
+        const scoreSection = this.scoreIndicator.parentElement.parentElement;
+        scoreSection.classList.remove('hidden');
+        
+        this.feedbackDetails.parentElement.classList.remove('hidden');
+        
+        const correctResponseSection = this.correctResponse.parentElement.parentElement;
+        correctResponseSection.classList.remove('hidden');
         
         // Update score indicators
         this.scoreIndicator.textContent = feedbackData.grade;
@@ -228,9 +289,27 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
 
     // Display error feedback
     displayErrorFeedback(errorMessage = null) {
+        // Show the feedback container
+        this.feedbackContainer.classList.remove('hidden');
+        
+        // Restore the feedback title if it was hidden
+        const feedbackTitle = this.feedbackContainer.querySelector('h2');
+        if (feedbackTitle) {
+            feedbackTitle.classList.remove('hidden');
+        }
+        
         // Hide loading, show content
         this.feedbackLoading.classList.add('hidden');
         this.feedbackContent.classList.remove('hidden');
+        
+        // Make sure all feedback elements are visible (might have been hidden by showCorrectExample)
+        const scoreSection = this.scoreIndicator.parentElement.parentElement;
+        scoreSection.classList.remove('hidden');
+        
+        this.feedbackDetails.parentElement.classList.remove('hidden');
+        
+        const correctResponseSection = this.correctResponse.parentElement.parentElement;
+        correctResponseSection.classList.remove('hidden');
         
         // Set error display
         this.scoreIndicator.textContent = '?';
