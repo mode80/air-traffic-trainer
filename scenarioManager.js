@@ -1,0 +1,266 @@
+// Scenario Management for Air Traffic Trainer
+
+class ScenarioManager {
+    constructor() {
+        // DOM Elements
+        this.scenarioDescription = document.getElementById('scenario-description');
+        this.scenarioLoading = document.getElementById('scenario-loading');
+        this.weatherInfo = document.getElementById('weather-info');
+        this.weatherContainer = document.getElementById('weather-container');
+        this.newScenarioBtn = document.getElementById('new-scenario-btn');
+        
+        // Flight info elements
+        this.aircraftTypeEl = document.getElementById('aircraft-type');
+        this.tailNumberEl = document.getElementById('tail-number');
+        this.airportTypeEl = document.getElementById('airport-type');
+        this.airportEl = document.getElementById('airport');
+        this.airportDiagramEl = document.getElementById('airport-diagram');
+        
+        // Current scenario
+        this.currentScenario = null;
+        
+        // Sample scenarios for few-shot learning prompt (simplified structure)
+        this.fewShotSamples = [
+            {
+                title: "Pre-departure Taxi at Palo Alto Airport",
+                description: "You are parked at the main ramp and need to request taxi clearance from ground control for departure to the east on runway 31.",
+                atcCall: null,
+                weatherInfo: "Palo Alto Airport, information Alpha. Winds 310 at 8 knots. Visibility 10 miles. Clear below 12,000. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 31. Advise on initial contact you have information Alpha.",
+                aircraft: "Cessna 172 Skyhawk",
+                tailNumber: "N5678P",
+                airport: "KPAO - Palo Alto Airport",
+                isTowered: true
+            },
+            {
+                title: "Traffic Advisory Response",
+                description: "You are flying 15 miles east at 4,500 feet MSL, heading 270°. You have received the following traffic advisory from Approach. Respond appropriately.",
+                atcCall: "Cessna Seven One Two Three Four, traffic, two o'clock, five miles, eastbound, altitude indicates three thousand five hundred.",
+                weatherInfo: "",
+                aircraft: "Cessna 172 Skyhawk",
+                tailNumber: "N71234",
+                airport: "KOAK - Oakland International Airport",
+                isTowered: true
+            },
+            {
+                title: "Position Report at Uncontrolled Airport",
+                description: "You are flying the downwind leg in the traffic pattern for runway 27 at traffic pattern altitude. You need to make your position report on CTAF.",
+                atcCall: null,
+                weatherInfo: "Reid-Hillview Automated Weather Observation, 1845 Zulu. Wind 250 at 6 knots. Visibility 10 miles. Clear below 12,000. Temperature 23 Celsius, dew point 14 Celsius. Altimeter 29.92. Runway 31L in use.",
+                aircraft: "Cessna 152",
+                tailNumber: "N98765",
+                airport: "KRHV - Reid-Hillview Airport", 
+                isTowered: false
+            },
+            {
+                title: "Emergency Declaration",
+                description: "You are flying 20 miles south at 5,500 feet MSL. Your engine has started running rough and you suspect carburetor icing. You need to declare an emergency to ATC.",
+                atcCall: null,
+                weatherInfo: "",
+                aircraft: "Piper Cherokee",
+                tailNumber: "N4567A",
+                airport: "KSFO - San Francisco International Airport",
+                isTowered: true
+            }
+        ];
+        
+        // Initialize
+        this.init();
+    }
+    
+    init() {
+        // Set up event listeners
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // New scenario button
+        this.newScenarioBtn.addEventListener('click', () => {
+            this.generateScenario();
+            // Reset both input modes
+            document.getElementById('user-response').value = '';
+            window.resetAudioRecording();
+            document.getElementById('feedback-container').classList.add('hidden');
+        });
+    }
+    
+    // Update flight information display
+    updateFlightInfoDisplay(scenario) {
+        // Basic aircraft and airport information
+        this.aircraftTypeEl.textContent = scenario.aircraft;
+        this.tailNumberEl.textContent = scenario.tailNumber;
+        this.airportEl.textContent = scenario.airport;
+        this.airportTypeEl.textContent = scenario.isTowered ? "Towered" : "Uncontrolled";
+        
+        // Generate airport diagram
+        window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered);
+        
+        // Weather information - only show if there's weather info available
+        if (scenario.weatherInfo && scenario.weatherInfo.trim() !== '') {
+            this.weatherInfo.textContent = scenario.weatherInfo;
+            this.weatherContainer.classList.remove('hidden');
+        } else {
+            this.weatherContainer.classList.add('hidden');
+        }
+    }
+    
+    // Generate a new scenario using OpenAI's GPT-4o model
+    async generateScenario() {
+        // Show loading indicator
+        this.scenarioLoading.classList.remove('hidden');
+        this.scenarioDescription.classList.add('hidden');
+        this.newScenarioBtn.disabled = true;
+        document.getElementById('submit-response-btn').disabled = true;
+        
+        // Sample scenario objects to use as examples
+        const examples = JSON.stringify(this.fewShotSamples, null, 2);
+        
+        try {
+            // Get API key
+            const apiKey = localStorage.getItem('openai_api_key');
+            if (!apiKey) {
+                window.showToast("OpenAI API key required. Please add your API key in the settings section below.", true);
+                // Scroll to settings section
+                document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
+                // Fall back to a random sample scenario
+                this.currentScenario = this.fewShotSamples[Math.floor(Math.random() * this.fewShotSamples.length)];
+                this.displayScenario(this.currentScenario);
+                return;
+            }
+            
+            // Create prompt with instructions for scenario generation
+            const prompt = `Generate one new detailed VFR aviation radio communication scenario object for a pilot training application. The scenario should be diverse, realistic, and educational. Each scenario should include enough details for a pilot to craft an appropriate radio call.
+
+Here are some examples of the format and variety of scenarios:
+
+${examples}
+
+Focus on creating scenarios that cover a wide range of common VFR communications, including:
+- Initial contact with different ATC facilities (Ground, Tower, Approach, Center)
+- Position reporting at towered and uncontrolled airports
+- Taxi, takeoff, and landing requests
+- Frequency changes
+- Flight following requests
+- Navigating through different airspaces
+- Traffic advisories
+- Weather information requests
+- Emergency or abnormal situations (occasionally)
+
+Your generated scenario should match this exact JSON structure with all fields. Make sure to:
+1. Provide a clear, descriptive title
+2. Keep the description concise and focused on the situation and task
+3. Don't repeat information in the description that's already present in other fields
+   - Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
+   - The user will see the weatherInfo and airport fields separately alongside the description
+4. Only include atcCall if there is actual ATC dialog
+5. Only include weatherInfo when relevant and otherwise leave it as an empty string
+6. Choose appropriate aircraft types and real airports across the United States
+7. Use proper aviation terminology and phraseology
+
+Generate only ONE scenario object that strictly follows the given structure. Return ONLY valid JSON with no additional explanations or markdown formatting. The entire response should be parseable with JSON.parse().`;
+
+            // Call OpenAI API
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a specialized aviation training assistant that creates realistic VFR radio communication scenarios in JSON format.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7
+                })
+            });
+            
+            // Handle API response
+            if (response.ok) {
+                const data = await response.json();
+                const responseContent = data.choices[0].message.content.trim();
+                
+                try {
+                    // Parse the JSON response
+                    const generatedScenario = JSON.parse(responseContent);
+                    
+                    // Use the generated scenario
+                    this.currentScenario = generatedScenario;
+                    
+                    // Update UI
+                    this.displayScenario(this.currentScenario);
+                } catch (e) {
+                    console.error("Failed to parse scenario JSON:", e);
+                    // Fall back to a random sample scenario
+                    this.currentScenario = this.fewShotSamples[Math.floor(Math.random() * this.fewShotSamples.length)];
+                    this.displayScenario(this.currentScenario);
+                    window.showToast("Error parsing generated scenario. Using sample scenario instead.", true);
+                }
+            } else {
+                // Handle error response
+                const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
+                console.error("OpenAI API error:", errorData);
+                
+                // Handle API key errors
+                if (response.status === 401) {
+                    localStorage.removeItem('openai_api_key');
+                    window.showToast("Invalid OpenAI API key. Please check your settings.", true);
+                } else {
+                    window.showToast(`Error generating scenario: ${errorData.error?.message || 'Unknown error'}`, true);
+                }
+                
+                // Fall back to a random sample scenario
+                this.currentScenario = this.fewShotSamples[Math.floor(Math.random() * this.fewShotSamples.length)];
+                this.displayScenario(this.currentScenario);
+            }
+        } catch (err) {
+            console.error("Error generating scenario:", err);
+            // Fall back to a random sample scenario
+            this.currentScenario = this.fewShotSamples[Math.floor(Math.random() * this.fewShotSamples.length)];
+            this.displayScenario(this.currentScenario);
+            window.showToast(`Error: ${err.message}`, true);
+        }
+    }
+    
+    // Display the scenario in the UI
+    displayScenario(scenario) {
+        // Hide loading indicator
+        this.scenarioLoading.classList.add('hidden');
+        this.scenarioDescription.classList.remove('hidden');
+        this.newScenarioBtn.disabled = false;
+        document.getElementById('submit-response-btn').disabled = false;
+        
+        // Create the scenario text
+        let scenarioText = `<p>${scenario.description}</p>`;
+        
+        // Add ATC communication if present
+        if (scenario.atcCall) {
+            scenarioText += `<p class="mt-3 bg-[var(--light-border)] dark:bg-[var(--dark-border)] p-2 rounded-md font-medium">"${scenario.atcCall}"</p>`;
+        }
+        
+        // Display the scenario
+        this.scenarioDescription.innerHTML = scenarioText;
+        
+        // Update the flight information display
+        this.updateFlightInfoDisplay(scenario);
+        
+        // Reset input
+        document.getElementById('user-response').value = '';
+        window.resetAudioRecording();
+        document.getElementById('feedback-container').classList.add('hidden');
+    }
+    
+    // Get the current scenario
+    getCurrentScenario() {
+        return this.currentScenario;
+    }
+}
+
+// Export the ScenarioManager class
+window.ScenarioManager = ScenarioManager;
