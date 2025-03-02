@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "name": "air-traffic-trainer",
-  "builds": [
-    { "src": "*.html", "use": "@vercel/static" },
-    { "src": "*.js", "use": "@vercel/static" },
-    { "src": "*.css", "use": "@vercel/static" }
-  ],
   "routes": [
     { "src": "/(.*)", "dest": "/main.html" }
   ]
