@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Air Traffic Trainer Icon Generator</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; }
+        canvas { border: 1px solid #ddd; margin: 20px auto; display: block; }
+        .controls { margin: 20px; }
+        p { max-width: 600px; margin: 20px auto; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Air Traffic Trainer Icon Generator</h1>
+    <p>
+        This page generates a simple placeholder icon for your app. Right-click on the canvas and select 
+        "Save Image As..." to save it. Rename it to match the icon filenames referenced in your manifest.json.
+    </p>
+    <canvas id="iconCanvas" width="512" height="512"></canvas>
+    <div class="controls">
+        <button id="downloadBtn">Download Icon</button>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Draw background
+        ctx.fillStyle = '#4f46e5'; // Primary color
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Draw airplane silhouette
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        
+        // Airplane body
+        ctx.moveTo(256, 120);
+        ctx.lineTo(290, 390);
+        ctx.lineTo(256, 400);
+        ctx.lineTo(222, 390);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Wings
+        ctx.beginPath();
+        ctx.moveTo(150, 260);
+        ctx.lineTo(362, 260);
+        ctx.lineTo(340, 300);
+        ctx.lineTo(172, 300);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(220, 140);
+        ctx.lineTo(292, 140);
+        ctx.lineTo(256, 100);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add radio waves
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 10;
+        
+        // Draw concentric arcs
+        for (let i = 1; i <= 3; i++) {
+            const radius = 80 + (i * 40);
+            ctx.beginPath();
+            ctx.arc(256, 230, radius, Math.PI * 0.7, Math.PI * 2.3);
+            ctx.stroke();
+        }
+        
+        // Download functionality
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'icon-512x512.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>

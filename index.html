@@ -2,8 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Air Traffic Trainer</title>
+    
+    <!-- iOS specific meta tags for PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Air Traffic">
+    <meta name="theme-color" content="#4f46e5">
+    
+    <!-- Home screen icons -->
+    <link rel="apple-touch-icon" href="icons/icon-512x512.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167x167.png">
+    
+    <!-- Web app manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Script and style references -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="styles.css">
@@ -14,6 +31,28 @@
     <script src="apiKeyManager.js"></script>
     <script src="textToSpeech.js"></script>
     <script src="main.js"></script>
+    
+    <!-- Register Service Worker -->
+    <script>
+        // Only register service worker when running from a proper server (not file://)
+        if ('serviceWorker' in navigator && 
+            (window.location.protocol === 'https:' || 
+             window.location.protocol === 'http:' || 
+             window.location.hostname === 'localhost')) {
+            
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        } else {
+            console.log('Service Worker not registered: Running in development mode or from filesystem');
+        }
+    </script>
 </head>
 <body class="antialiased min-h-screen transition-colors bg-[var(--light-bg)] text-[var(--light-text)] dark:bg-[var(--dark-bg)] dark:text-[var(--dark-text)]">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
