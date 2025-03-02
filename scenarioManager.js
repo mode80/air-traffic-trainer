@@ -89,11 +89,18 @@ class ScenarioManager {
     
     // Update flight information display
     updateFlightInfoDisplay(scenario) {
+        // Safety check - ensure we have a valid scenario
+        if (!scenario) {
+            console.error("No scenario object provided to updateFlightInfoDisplay");
+            return;
+        }
+        
         // Basic aircraft and airport information
-        this.aircraftTypeEl.textContent = scenario.aircraft;
-        this.tailNumberEl.textContent = scenario.tailNumber;
-        this.airportEl.textContent = scenario.airport;
-        this.airportTypeEl.textContent = scenario.isTowered ? "Towered" : "Uncontrolled";
+        this.aircraftTypeEl.textContent = scenario.aircraft || "Unknown aircraft";
+        this.tailNumberEl.textContent = scenario.tailNumber || "Unknown registration";
+        this.airportEl.textContent = scenario.airport || "Unknown airport";
+        this.airportTypeEl.textContent = scenario.isTowered !== undefined ? 
+            (scenario.isTowered ? "Towered" : "Uncontrolled") : "Unknown";
         
         // Generate airport diagram
         window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered);
@@ -195,6 +202,12 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
                     // Parse the JSON response
                     const generatedScenario = JSON.parse(responseContent);
                     
+                    // Validate the scenario object
+                    if (!this.validateScenario(generatedScenario)) {
+                        console.error("Generated scenario is missing required fields");
+                        throw new Error("Invalid scenario format");
+                    }
+                    
                     // Use the generated scenario
                     this.currentScenario = generatedScenario;
                     
@@ -233,24 +246,76 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
         }
     }
     
+    // Validate a scenario object
+    validateScenario(scenario) {
+        // Check for required fields
+        const requiredFields = ['title', 'description', 'aircraft', 'tailNumber', 'airport', 'isTowered', 'correctResponse'];
+        for (const field of requiredFields) {
+            if (!scenario[field]) {
+                return false;
+            }
+        }
+        
+        // Check for optional fields
+        const optionalFields = ['atcCall', 'weatherInfo'];
+        for (const field of optionalFields) {
+            if (scenario[field] && typeof scenario[field] !== 'string') {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     // Display the scenario in the UI
     displayScenario(scenario) {
+        // Safety check - ensure we have a valid scenario
+        if (!scenario) {
+            console.error("No scenario object provided to displayScenario");
+            window.showToast("Error displaying scenario", true);
+            return;
+        }
+        
         // Hide loading indicator
         this.scenarioLoading.classList.add('hidden');
         this.scenarioDescription.classList.remove('hidden');
         this.newScenarioBtn.disabled = false;
         document.getElementById('submit-response-btn').disabled = false;
         
-        // Create the scenario text
-        let scenarioText = `<p>${scenario.description}</p>`;
+        // Create the scenario text with proper null check
+        let scenarioText = `<p>${scenario.description || "No scenario description available"}</p>`;
         
         // Add ATC communication if present
         if (scenario.atcCall) {
-            scenarioText += `<p class="mt-3 bg-[var(--light-border)] dark:bg-[var(--dark-border)] p-2 rounded-md font-medium">"${scenario.atcCall}"</p>`;
+            scenarioText += `
+                <div class="mt-3 bg-[var(--light-border)] dark:bg-[var(--dark-border)] p-2 rounded-md font-medium relative">
+                    <button class="play-atc-speech absolute left-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center w-8 h-8 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
+                            data-speech="${scenario.atcCall.replace(/"/g, '&quot;')}" 
+                            title="Play ATC speech">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div class="pl-8">
+                        "${scenario.atcCall}"
+                    </div>
+                </div>`;
         }
         
         // Display the scenario
         this.scenarioDescription.innerHTML = scenarioText;
+        
+        // Add event listeners to play buttons
+        const playButtons = this.scenarioDescription.querySelectorAll('.play-atc-speech');
+        playButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const speechText = button.getAttribute('data-speech');
+                if (speechText && window.textToSpeechManager) {
+                    window.textToSpeechManager.playATCSpeech(speechText, button);
+                }
+            });
+        });
         
         // Update the flight information display
         this.updateFlightInfoDisplay(scenario);
