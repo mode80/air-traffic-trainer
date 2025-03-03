@@ -60,7 +60,7 @@ class TextToSpeechManager {
                     model: 'tts-1', // Using the base TTS model for efficiency
                     voice: 'onyx',  // Deep male voice, good for ATC
                     input: text,
-                    speed: 0.9      // Slightly slower than default for clarity
+                    speed: 1.1      // Slightly faster than default for ATC realism 
                 })
             });
 

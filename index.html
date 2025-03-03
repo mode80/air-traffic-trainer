@@ -30,7 +30,6 @@
     <script src="evaluationManager.js"></script>
     <script src="apiKeyManager.js"></script>
     <script src="textToSpeech.js"></script>
-    <script src="main.js"></script>
     
     <!-- Register Service Worker -->
     <script>
@@ -270,5 +269,21 @@
         </div>
     </div>
 
+    <!-- Initialize all components when the DOM is loaded -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize dark mode
+            initializeDarkMode();
+            
+            // Initialize components
+            window.scenarioManager = new ScenarioManager();
+            window.audioRecorder = new AudioRecorder();
+            window.evaluationManager = new EvaluationManager();
+            window.apiKeyManager = new ApiKeyManager();
+            
+            // Generate initial scenario
+            window.scenarioManager.generateScenario();
+        });
+    </script>
 </body>
 </html>

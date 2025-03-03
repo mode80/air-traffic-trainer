@@ -1,5 +1,10 @@
 /* Air Traffic Trainer Styles */
 
+/* iOS Safe Area Support */
+body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 :root {
     /* Light mode colors */
     --light-bg: #f8f9fa;
@@ -216,7 +221,13 @@
 /* Responsive adjustments */
 @media (max-width: 640px) {
     .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
     }
+}
+
+/* Additional iOS safe area adjustments */
+.container {
+    padding-top: max(2rem, env(safe-area-inset-top));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
