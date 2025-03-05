@@ -27,7 +27,7 @@ class ScenarioManager {
                 atcCall: null,
                 weatherInfo: "Palo Alto Airport, information Alpha. Winds 310 at 8 knots. Visibility 10 miles. Clear below 12,000. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 31. Advise on initial contact you have information Alpha.",
                 aircraft: "Cessna 172 Skyhawk",
-                tailNumber: "N5678P",
+                tailNumber: "N567AP",
                 airport: "KPAO - Palo Alto Airport",
                 isTowered: true,
                 correctResponse: "Palo Alto Ground, Skyhawk Five Six Seven Eight Papa at the main ramp with information Alpha, request taxi for eastbound departure."
@@ -38,7 +38,7 @@ class ScenarioManager {
                 atcCall: "Cessna Seven One Two Three Four, traffic, two o'clock, five miles, eastbound, altitude indicates three thousand five hundred.",
                 weatherInfo: "",
                 aircraft: "Cessna 172 Skyhawk",
-                tailNumber: "N71234",
+                tailNumber: "N7123AB",
                 airport: "KOAK - Oakland International Airport",
                 isTowered: true,
                 correctResponse: "Oakland Approach, Cessna Seven One Two Three Four, looking for traffic."
@@ -49,7 +49,7 @@ class ScenarioManager {
                 atcCall: null,
                 weatherInfo: "Reid-Hillview Automated Weather Observation, 1845 Zulu. Wind 250 at 6 knots. Visibility 10 miles. Clear below 12,000. Temperature 23 Celsius, dew point 14 Celsius. Altimeter 29.92. Runway 31L in use.",
                 aircraft: "Cessna 152",
-                tailNumber: "N98765",
+                tailNumber: "N987TC",
                 airport: "KRHV - Reid-Hillview Airport", 
                 isTowered: false,
                 correctResponse: "Reid-Hillview traffic, Cessna Niner Eight Seven Six Five, midfield downwind for runway two seven, Reid-Hillview."
@@ -60,7 +60,7 @@ class ScenarioManager {
                 atcCall: null,
                 weatherInfo: "",
                 aircraft: "Piper Cherokee",
-                tailNumber: "N4567A",
+                tailNumber: "N456VB",
                 airport: "KSFO - San Francisco International Airport",
                 isTowered: true,
                 correctResponse: "San Francisco Center, Piper Four Five Six Seven Alpha, declaring an emergency, engine running rough due to suspected carburetor icing, twenty miles south of San Francisco at five thousand five hundred feet, request vectors to nearest suitable airport."
