@@ -122,7 +122,12 @@ class TextToSpeechManager {
             })
             .catch(err => {
                 console.error('Error playing audio:', err);
-                window.showToast('Failed to play audio', true);
+                
+                // Don't show error toast for NotAllowedError (happens on initial load)
+                if (err.name !== 'NotAllowedError') {
+                    window.showToast('Failed to play audio', true);
+                }
+                
                 this.stopPlaying();
             });
     }

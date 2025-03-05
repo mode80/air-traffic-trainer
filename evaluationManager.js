@@ -119,8 +119,63 @@ class EvaluationManager {
         
         // If the scenario has an initial ATC call, display it
         if (currentScenario.atcCall) {
-            this.addATCMessage(currentScenario.atcCall);
+            // Use a special version of addATCMessage that doesn't auto-play on initial load
+            this.addInitialATCMessage(currentScenario.atcCall);
         }
+    }
+    
+    // Add an initial ATC message to the conversation without auto-playing
+    addInitialATCMessage(text) {
+        // Show the messages container if it's hidden
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages && interactionMessages.classList.contains('hidden')) {
+            interactionMessages.classList.remove('hidden');
+        }
+        
+        // Create the message element
+        const messageHTML = `
+            <div class="atc-message mb-3">
+                <div class="flex items-start">
+                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 relative max-w-[85%]">
+                        <button class="play-atc-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
+                                data-speech="${text.replace(/"/g, '&quot;')}" 
+                                title="Play ATC speech">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <p>${text}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add to the messages container
+        this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+        
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'atc',
+            text: text
+        });
+        
+        // Add event listener to the play button
+        const playButton = this.messagesContainer.querySelector('.atc-message:last-child .play-atc-speech');
+        if (playButton) {
+            playButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                const speechText = playButton.getAttribute('data-speech');
+                if (speechText && window.textToSpeechManager) {
+                    window.textToSpeechManager.playATCSpeech(speechText, playButton);
+                }
+            });
+            
+            // Do NOT automatically play the ATC speech on initial load
+            // This is the key difference from the regular addATCMessage method
+        }
+        
+        // Scroll to the bottom of the messages container
+        this.scrollToBottom();
     }
     
     // Reset the conversation for a new scenario
