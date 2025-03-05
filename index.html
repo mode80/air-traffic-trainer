@@ -85,14 +85,9 @@
             <!-- Left Side: Scenario and Response -->
             <div class="lg:col-span-7 order-1 flex flex-col gap-6">
                 <!-- Scenario Card -->
-                <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5">
+                <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5 relative">
                     <div class="flex justify-between items-center mb-3">
                         <h2 class="text-xl font-semibold">Scenario</h2>
-                        <button id="new-scenario-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white flex items-center justify-center w-10 h-10 rounded-full transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                        </button>
                     </div>
                     <div id="scenario-loading" class="flex items-center justify-center p-6">
                         <div class="loading-dots mr-3">
@@ -102,8 +97,17 @@
                         </div>
                         <p>Generating new scenario...</p>
                     </div>
-                    <div id="scenario-description" class="text-lg p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] hidden">
-                        Loading scenario...
+                    <!-- Simplest approach: position the button directly on the scenario description -->
+                    <div class="relative">
+                        <div id="scenario-description" class="text-lg p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[80px] resize-y overflow-auto hidden">
+                            Loading scenario...
+                        </div>
+                        
+                        <button id="new-scenario-btn" class="absolute right-3 bottom-[-10px] flex items-center justify-center w-10 h-10 rounded-full bg-[var(--primary)] hover:bg-[var(--accent)] text-white transition-colors shadow-md z-10" title="Generate new scenario">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -111,12 +115,6 @@
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5">
                     <div class="flex justify-between items-center mb-3">
                         <h2 class="text-xl font-semibold">Interaction</h2>
-                        <!-- Record Button -->
-                        <button id="record-btn" class="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--primary)] hover:bg-[var(--accent)] text-white transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                        </button>
                     </div>
 
                     <!-- Chat Messages Container (hidden initially until it has content) -->
@@ -182,7 +180,7 @@
                     <!-- Input Area (conditionally shown) -->
                     <div id="interaction-input-container" class="relative">
                         <div id="text-input-container" class="relative">
-                            <textarea id="user-response" placeholder="Type your radio communication here..." class="w-full p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[80px] text-base"></textarea>
+                            <textarea id="user-response" placeholder="Enter your radio communication here..." class="w-full p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[80px] text-base"></textarea>
                             
                             <!-- Transcription processing indicator (hidden by default) -->
                             <div id="transcription-processing" class="hidden absolute inset-0 bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center">
@@ -196,20 +194,34 @@
                                 </div>
                             </div>
                             
-                            <div class="flex flex-wrap gap-3 mt-4">
-                                <button id="submit-response-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                    Submit 
-                                </button>
-                                <button id="show-answer-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors">
-                                    Peek 
-                                </button>
+                            <!-- Improved UI with better visual grouping and labels -->
+                            <div class="mt-4">
+                                <!-- Input Tools - Record button inside textarea for contextual placement -->
+                                <div class="relative mb-3">
+                                    <button id="record-btn" class="absolute right-3 bottom-3 flex items-center justify-center w-10 h-10 rounded-full bg-[var(--primary)] hover:bg-[var(--accent)] text-white transition-colors" title="Record your radio call">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex gap-3">
+                                    <button id="submit-response-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                        Submit
+                                    </button>
+                                    <button id="show-answer-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Peek
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Hidden audio player for review (optional) -->
-                        <div id="audio-playback" class="hidden mt-3">
-                            <audio id="audio-player" controls class="w-full"></audio>
-                        </div>
+                        <!-- Audio playback is now handled through the play icon in ATC messages -->
                     </div>
                     
                     <!-- Next Scenario Button (hidden initially) -->
@@ -336,6 +348,9 @@
             window.hasPeekedOrMadeFirstCall = false;
             window.conversationComplete = false;
             window.textToSpeechManager = new TextToSpeechManager();
+            
+            // Simple fix for empty chat area visibility
+            document.getElementById('interaction-messages').classList.add('hidden');
         });
     </script>
 </body>

@@ -6,8 +6,7 @@ class AudioRecorder {
         this.recordBtn = document.getElementById('record-btn');
         this.stopRecordingBtn = document.getElementById('stop-recording-btn');
         this.recordingIndicator = document.getElementById('recording-indicator');
-        this.audioPlayback = document.getElementById('audio-playback');
-        this.audioPlayer = document.getElementById('audio-player');
+        // Audio playback is now handled through the play icon in ATC messages
         this.userResponseTextarea = document.getElementById('user-response');
         this.transcriptionProcessing = document.getElementById('transcription-processing');
         this.submitResponseBtn = document.getElementById('submit-response-btn');
@@ -204,12 +203,8 @@ class AudioRecorder {
                 this.audioBlob = new Blob(this.audioChunks);
                 this.audioURL = URL.createObjectURL(this.audioBlob);
                 
-                // Update audio player
-                this.audioPlayer.src = this.audioURL;
-                
-                // Show audio playback UI
+                // Hide recording indicator
                 this.recordingIndicator.classList.add('hidden');
-                this.audioPlayback.classList.remove('hidden');
                 
                 // Transcribe the audio using OpenAI's Speech-to-Text API
                 await this.transcribeAudio(this.audioBlob);
@@ -245,9 +240,7 @@ class AudioRecorder {
         if (this.recordingIndicator) {
             this.recordingIndicator.classList.add('hidden');
         }
-        if (this.audioPlayback) {
-            this.audioPlayback.classList.add('hidden');
-        }
+        // Audio playback is now handled through the play icon in ATC messages
         if (this.transcriptionProcessing) {
             this.transcriptionProcessing.classList.add('hidden');
         }

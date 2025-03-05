@@ -231,3 +231,16 @@ body {
     padding-top: max(2rem, env(safe-area-inset-top));
     padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
+
+/* Fix for interaction messages container */
+#interaction-messages:empty {
+    display: none !important;
+}
+
+#interaction-messages.hidden:empty {
+    display: none !important;
+}
+
+#messages-container:empty + #interaction-messages {
+    display: none !important;
+}
