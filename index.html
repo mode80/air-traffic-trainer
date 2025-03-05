@@ -153,14 +153,14 @@
                         <textarea id="user-response" placeholder="Type your radio communication here or click the microphone button to record..." class="w-full p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[100px] text-base"></textarea>
                         
                         <!-- Transcription processing indicator (hidden by default) -->
-                        <div id="transcription-processing" class="hidden absolute inset-0 bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] bg-opacity-90 dark:bg-opacity-90 flex items-center justify-center rounded-md">
+                        <div id="transcription-processing" class="hidden absolute inset-0 bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center">
                             <div class="flex items-center">
                                 <div class="loading-dots mr-3">
                                     <span class="bg-[var(--primary)]"></span>
                                     <span class="bg-[var(--primary)]"></span>
                                     <span class="bg-[var(--primary)]"></span>
                                 </div>
-                                <p>Transcribing audio...</p>
+                                <p>Processing audio...</p>
                             </div>
                         </div>
                         
@@ -179,8 +179,11 @@
                         <audio id="audio-player" controls class="w-full"></audio>
                     </div>
                 </div>
-
-                <!-- Feedback Section -->
+            </div>
+            
+            <!-- Right Side: Flight Information -->
+            <div class="lg:col-span-5 order-2 flex flex-col gap-6">
+                <!-- Feedback Section - Moved from left side to right side, above Flight Information -->
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5 hidden" id="feedback-container">
                     <h2 class="text-xl font-semibold mb-3">Feedback</h2>
                     <div id="feedback-loading" class="py-4 flex items-center">
@@ -205,10 +208,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Right Side: Flight Information -->
-            <div class="lg:col-span-5 order-2 flex flex-col gap-6">
+
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5 flex-grow">
                     <h2 class="text-xl font-semibold mb-3">Flight Information</h2>
                     
@@ -283,6 +283,9 @@
             
             // Generate initial scenario
             window.scenarioManager.generateScenario();
+            
+            // Initialize variable to track whether the "Peek" button has been clicked or the first radio call has been made
+            window.hasPeekedOrMadeFirstCall = false;
         });
     </script>
 </body>

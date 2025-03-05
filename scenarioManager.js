@@ -84,6 +84,8 @@ class ScenarioManager {
             document.getElementById('user-response').value = '';
             window.resetAudioRecording();
             document.getElementById('feedback-container').classList.add('hidden');
+            // Reset the flag to track whether the user has peeked or made a radio call
+            window.hasPeekedOrMadeFirstCall = false;
         });
     }
     

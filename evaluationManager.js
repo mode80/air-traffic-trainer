@@ -27,6 +27,9 @@ class EvaluationManager {
         
         // Export the evaluateResponse function for use by other modules
         window.evaluateResponse = this.evaluateResponse.bind(this);
+        
+        // Add MutationObserver to check visibility of feedback container
+        this.setupFeedbackVisibilityObserver();
     }
     
     setupEventListeners() {
@@ -44,6 +47,26 @@ class EvaluationManager {
         }
     }
     
+    setupFeedbackVisibilityObserver() {
+        // Create a MutationObserver to watch for changes to the feedback container's class list
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    // Check if the container is being shown
+                    if (!this.feedbackContainer.classList.contains('hidden')) {
+                        // If the user hasn't peeked or made a call yet, hide the feedback container
+                        if (!window.hasPeekedOrMadeFirstCall) {
+                            this.feedbackContainer.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Start observing the feedback container
+        observer.observe(this.feedbackContainer, { attributes: true });
+    }
+    
     // New method to show the correct example without evaluation
     showCorrectExample() {
         // Get the current scenario
@@ -52,6 +75,9 @@ class EvaluationManager {
             window.showToast('No active scenario. Please generate a scenario first.', true);
             return;
         }
+        
+        // Track that user has peeked at the answer
+        window.hasPeekedOrMadeFirstCall = true;
         
         // First, show the feedback container
         this.feedbackContainer.classList.remove('hidden');
@@ -97,6 +123,9 @@ class EvaluationManager {
             window.showToast('No active scenario. Please generate a scenario first.', true);
             return;
         }
+        
+        // Track that user has made a radio call
+        window.hasPeekedOrMadeFirstCall = true;
         
         // Show feedback section with loading state
         this.feedbackContainer.classList.remove('hidden');

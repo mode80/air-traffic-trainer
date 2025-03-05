@@ -2,7 +2,7 @@
 
 class AudioRecorder {
     constructor() {
-        // DOM Elements
+        // DOM Elements - use defensive coding to handle possible missing elements
         this.recordBtn = document.getElementById('record-btn');
         this.stopRecordingBtn = document.getElementById('stop-recording-btn');
         this.recordingIndicator = document.getElementById('recording-indicator');
@@ -23,6 +23,13 @@ class AudioRecorder {
         this.audioURL = null;
         this.isRecording = false;
         
+        // Check if all required elements are available
+        if (!this.recordBtn || !this.stopRecordingBtn || !this.recordingIndicator || 
+            !this.userResponseTextarea || !this.permissionModal || 
+            !this.allowMicBtn || !this.denyMicBtn) {
+            console.warn('AudioRecorder: Some required DOM elements are missing');
+        }
+        
         // Initialize
         this.init();
     }
@@ -37,33 +44,41 @@ class AudioRecorder {
     
     setupEventListeners() {
         // Permission modal handlers
-        this.allowMicBtn.addEventListener('click', () => this.requestMicrophonePermission());
+        if (this.allowMicBtn) {
+            this.allowMicBtn.addEventListener('click', () => this.requestMicrophonePermission());
+        }
         
-        this.denyMicBtn.addEventListener('click', () => {
-            this.permissionModal.classList.add('hidden');
-        });
+        if (this.denyMicBtn) {
+            this.denyMicBtn.addEventListener('click', () => {
+                // Hide the modal
+                this.permissionModal.classList.add('hidden');
+                // Record user preference
+                localStorage.setItem('microphone_preference', 'denied');
+            });
+        }
         
-        // Record button handler
-        this.recordBtn.addEventListener('click', () => {
-            if (!window.microphoneInitialized) {
-                // Show permission modal if microphone not initialized
-                window.showMicrophonePermissionModal();
-                return;
-            }
-            
-            if (this.isRecording) {
-                this.stopRecording();
-            } else {
-                this.startRecording();
-            }
-        });
+        // Recording controls
+        if (this.recordBtn) {
+            this.recordBtn.addEventListener('click', () => {
+                // Check if we need to ask for permission first
+                const micPref = localStorage.getItem('microphone_preference');
+                
+                if (micPref === 'granted') {
+                    // Permission already granted, start recording
+                    this.startRecording();
+                } else if (micPref === 'denied') {
+                    // Permission previously denied, show toast
+                    window.showToast('Microphone access is disabled. Please use text input instead.', true);
+                } else {
+                    // Show permission modal
+                    this.permissionModal.classList.remove('hidden');
+                }
+            });
+        }
         
-        // Stop recording button handler
-        this.stopRecordingBtn.addEventListener('click', () => {
-            if (this.isRecording) {
-                this.stopRecording();
-            }
-        });
+        if (this.stopRecordingBtn) {
+            this.stopRecordingBtn.addEventListener('click', () => this.stopRecording());
+        }
     }
     
     // Start recording
@@ -113,6 +128,9 @@ class AudioRecorder {
             
             // Show toast notification
             window.showToast('Microphone access granted. Click the microphone button to record.', false);
+            
+            // Record user preference
+            localStorage.setItem('microphone_preference', 'granted');
             
         } catch (err) {
             console.error("Error accessing microphone:", err);
@@ -211,9 +229,15 @@ class AudioRecorder {
     
     // Reset audio recording UI
     resetAudioRecording() {
-        this.recordingIndicator.classList.add('hidden');
-        this.audioPlayback.classList.add('hidden');
-        this.transcriptionProcessing.classList.add('hidden');
+        if (this.recordingIndicator) {
+            this.recordingIndicator.classList.add('hidden');
+        }
+        if (this.audioPlayback) {
+            this.audioPlayback.classList.add('hidden');
+        }
+        if (this.transcriptionProcessing) {
+            this.transcriptionProcessing.classList.add('hidden');
+        }
         
         if (this.audioURL) {
             URL.revokeObjectURL(this.audioURL);
