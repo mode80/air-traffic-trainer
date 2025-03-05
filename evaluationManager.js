@@ -107,6 +107,12 @@ class EvaluationManager {
         // Show the input container
         this.interactionInputContainer.classList.remove('hidden');
         
+        // Hide the interaction messages container if it's empty
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages) {
+            interactionMessages.classList.add('hidden');
+        }
+        
         // Get the current scenario
         const currentScenario = window.scenarioManager.getCurrentScenario();
         if (!currentScenario) return;
@@ -131,6 +137,12 @@ class EvaluationManager {
         
         // Hide the next scenario button
         this.nextScenarioContainer.classList.add('hidden');
+        
+        // Hide the interaction messages container since it's now empty
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages) {
+            interactionMessages.classList.add('hidden');
+        }
         
         // Clear the input field
         this.userResponseInput.value = '';

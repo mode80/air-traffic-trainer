@@ -237,10 +237,14 @@ body {
     display: none !important;
 }
 
-#interaction-messages.hidden:empty {
+#interaction-messages.hidden {
     display: none !important;
 }
 
-#messages-container:empty + #interaction-messages {
+#messages-container:empty ~ #interaction-messages {
+    display: none !important;
+}
+
+#messages-container:empty {
     display: none !important;
 }
