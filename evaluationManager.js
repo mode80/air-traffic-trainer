@@ -190,6 +190,11 @@ class EvaluationManager {
                     window.textToSpeechManager.playATCSpeech(speechText, playButton);
                 }
             });
+            
+            // Automatically play the ATC speech without requiring a click
+            if (window.textToSpeechManager) {
+                window.textToSpeechManager.playATCSpeech(text, playButton);
+            }
         }
         
         // Scroll to the bottom of the messages container

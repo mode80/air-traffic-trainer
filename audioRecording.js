@@ -85,7 +85,16 @@ class AudioRecorder {
     // Start recording
     startRecording() {
         if (!this.mediaRecorder) {
-            window.showToast('Microphone not initialized. Please enable microphone access.', true);
+            // If microphone is not initialized, show permission modal instead of error
+            const micPref = localStorage.getItem('microphone_preference');
+            
+            if (micPref === 'denied') {
+                // Permission previously denied, show toast
+                window.showToast('Microphone access is disabled. Please use text input instead.', true);
+            } else {
+                // Show permission modal
+                this.permissionModal.classList.remove('hidden');
+            }
             return;
         }
         
@@ -128,10 +137,13 @@ class AudioRecorder {
             this.recordBtn.classList.remove('opacity-50');
             
             // Show toast notification
-            window.showToast('Microphone access granted. Click the microphone button to record.', false);
+            window.showToast('Microphone access granted. Starting recording...', false);
             
             // Record user preference
             localStorage.setItem('microphone_preference', 'granted');
+            
+            // Start recording automatically
+            this.startRecording();
             
         } catch (err) {
             console.error("Error accessing microphone:", err);
@@ -325,11 +337,11 @@ class AudioRecorder {
                 // Show success message
                 window.showToast('Audio transcribed successfully', false);
                 
-                // If we're in a conversation and the conversation is not complete, focus the submit button
+                // If we're in a conversation and the conversation is not complete, automatically submit the response
                 if (window.evaluationManager && 
-                    !window.evaluationManager.conversationComplete && 
-                    this.submitResponseBtn) {
-                    this.submitResponseBtn.focus();
+                    !window.evaluationManager.conversationComplete) {
+                    // Call the evaluateResponse method with the transcribed text
+                    window.evaluationManager.evaluateResponse(formattedText, true);
                 }
                 
             } else {
