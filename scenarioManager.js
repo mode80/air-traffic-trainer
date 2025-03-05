@@ -19,102 +19,54 @@ class ScenarioManager {
         // Current scenario
         this.currentScenario = null;
         
-        // Sample scenarios for few-shot learning prompt (simplified structure)
-        this.fewShotSamples = [
-            {
-                description: "You need to request taxi clearance from ground control for departure to the east on runway 31.",
-                position: "Parked at the main ramp",
-                atcCall: null,
-                weatherInfo: "Palo Alto Airport, information Alpha. Winds 310 at 8 knots. Visibility 10 miles. Clear below 12,000. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 31. Advise on initial contact you have information Alpha.",
-                aircraft: "Cessna 172 Skyhawk",
-                tailNumber: "N567AP",
-                airport: "KPAO - Palo Alto Airport",
-                isTowered: true,
-                correctResponse: "Palo Alto Ground, Skyhawk Five Six Seven Eight Papa at the main ramp with information Alpha, request taxi for eastbound departure."
-            },
-            {
-                description: "You have received the following traffic advisory from Approach. Respond appropriately.",
-                position: "15 miles east at 4,500 feet MSL, heading 270°",
-                atcCall: "Cessna Seven One Two Three Four, traffic, two o'clock, five miles, eastbound, altitude indicates three thousand five hundred.",
-                weatherInfo: "",
-                aircraft: "Cessna 172 Skyhawk",
-                tailNumber: "N7123AB",
-                airport: "KOAK - Oakland International Airport",
-                isTowered: true,
-                correctResponse: "Oakland Approach, Cessna Seven One Two Three Four, looking for traffic."
-            },
-            {
-                description: "You need to make your position report on CTAF.",
-                position: "Downwind leg in the traffic pattern for runway 27 at traffic pattern altitude",
-                atcCall: null,
-                weatherInfo: "Reid-Hillview Automated Weather Observation, 1845 Zulu. Wind 250 at 6 knots. Visibility 10 miles. Clear below 12,000. Temperature 23 Celsius, dew point 14 Celsius. Altimeter 29.92. Runway 31L in use.",
-                aircraft: "Cessna 152",
-                tailNumber: "N987TC",
-                airport: "KRHV - Reid-Hillview Airport", 
-                isTowered: false,
-                correctResponse: "Reid-Hillview traffic, Cessna Niner Eight Seven Six Five, midfield downwind for runway two seven, Reid-Hillview."
-            },
-            {
-                description: "Your engine has started running rough and you suspect carburetor icing. You need to declare an emergency to ATC.",
-                position: "20 miles south at 5,500 feet MSL",
-                atcCall: null,
-                weatherInfo: "",
-                aircraft: "Piper Cherokee",
-                tailNumber: "N456VB",
-                airport: "KSFO - San Francisco International Airport",
-                isTowered: true,
-                correctResponse: "San Francisco Center, Piper Four Five Six Seven Alpha, declaring an emergency, engine running rough due to suspected carburetor icing, twenty miles south of San Francisco at five thousand five hundred feet, request vectors to nearest suitable airport."
-            }
-        ];
-        
         // Extended sample scenarios for more comprehensive training based on VFR communications taxonomy
         this.manyShotSamples = [
             // 1. Pre-Departure (VFR at a Controlled Field)
             // 1.1 Contacting Ground
             {
                 description: "Request taxi clearance for VFR departure from controlled field",
-                position: "Parked at main ramp",
-                atcCall: null,
-                weatherInfo: "Centerville Airport, information Alpha. Winds 270 at 10 knots. Visibility 10 miles. Clear. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 27.",
+                position: "Parked at main ramp, destination Springfield",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Centerville Ground, Cessna 123AB, at the main ramp with information Alpha, VFR to Springfield, request taxi."
+                weatherInfo: "Centerville Airport, information Alpha. Winds 270 at 10 knots. Visibility 10 miles. Clear. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 27.",
+                correctResponse: "Centerville Ground, Cessna One Two Three Alpha Bravo, at the main ramp with information Alpha, VFR to Springfield, request taxi."
             },
             {
                 description: "Request taxi clearance for local VFR flight",
-                position: "At the FBO",
-                atcCall: null,
-                weatherInfo: "Metro Airport, information Charlie. Winds 180 at 8 knots. Visibility 10 miles. Few clouds at 5,000. Temperature 25, dew point 18. Altimeter 30.01. Landing and departing runway 18.",
+                position: "At the FBO, destination local practice area north",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Ground, Cherokee 45X, at the FBO with information Charlie, VFR to the north, ready to taxi."
+                weatherInfo: "Metro Airport, information Charlie. Winds 180 at 8 knots. Visibility 10 miles. Few clouds at 5,000. Temperature 25, dew point 18. Altimeter 30.01. Landing and departing runway 18.",
+                correctResponse: "Metro Ground, Cherokee Four Five X-ray, at the FBO with information Charlie, VFR to the north, ready to taxi."
             },
             // 1.2 VFR Clearance or Specific Instructions
             {
                 description: "Request flight following during taxi",
-                position: "Holding short of runway",
-                atcCall: null,
-                weatherInfo: "Skyhawk Airport, information Delta. Winds 120 at 5 knots. Visibility 8 miles. Scattered clouds at 4,500. Temperature 23, dew point 15. Altimeter 29.95. Landing and departing runway 12.",
+                position: "Holding short of runway, destination Riverside",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KSKY - Skyhawk Airport",
                 isTowered: true,
-                correctResponse: "Skyhawk Ground, Cessna 3412Z, VFR to Riverside, request flight following."
+                weatherInfo: "Skyhawk Airport, information Delta. Winds 120 at 5 knots. Visibility 8 miles. Scattered clouds at 4,500. Temperature 23, dew point 15. Altimeter 29.95. Landing and departing runway 12.",
+                correctResponse: "Skyhawk Ground, Cessna Three Four One Two Zulu, VFR to Riverside, request flight following."
             },
             {
                 description: "Request taxi for local VFR flight without additional services",
-                position: "At the main terminal",
-                atcCall: null,
-                weatherInfo: "",
+                position: "At the main terminal, destination local practice area",
+                atcCall: "",
                 aircraft: "Piper Archer",
                 tailNumber: "N7HP",
                 airport: "KPPR - Piper Airport",
                 isTowered: true,
-                correctResponse: "Piper Ground, Archer 7HP, ready to taxi, VFR to local practice area."
+                weatherInfo: "",
+                correctResponse: "Piper Ground, Archer Seven Hotel Papa, ready to taxi, VFR to local practice area."
             },
             
             // 2. Taxi and Run-Up
@@ -123,165 +75,165 @@ class ScenarioManager {
                 description: "Respond to runway crossing instruction during taxi",
                 position: "Taxiing on Taxiway Alpha",
                 atcCall: "Cessna 123AB, cross Runway 15 at Alpha, hold short of Runway 25.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Cross Runway 15 at Alpha, hold short Runway 25, 123AB."
+                weatherInfo: "",
+                correctResponse: "Cross Runway One Five at Alpha, hold short Runway Two Five, One Two Three Alpha Bravo."
             },
             {
                 description: "Respond to traffic avoidance instruction during taxi",
                 position: "Taxiing on Taxiway Bravo",
                 atcCall: "Cherokee 45X, give way to the King Air from your left, then continue to Runway 18 via Bravo.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Give way to King Air, then Runway 18 via Bravo, Cherokee 45X."
+                weatherInfo: "",
+                correctResponse: "Give way to King Air, then Runway One Eight via Bravo, Cherokee Four Five X-ray."
             },
             // 2.2 Run-Up Area / Final Checks
             {
                 description: "Report ready for departure after run-up",
                 position: "Holding short of Runway 25 after completing run-up",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Centerville Tower, Cessna 123AB, run-up complete, holding short Runway 25, ready for departure."
+                weatherInfo: "",
+                correctResponse: "Centerville Tower, Cessna One Two Three Alpha Bravo, run-up complete, holding short Runway Two Five, ready for departure."
             },
             {
                 description: "Request intersection departure after run-up",
                 position: "At Taxiway Delta intersection with Runway 18",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Tower, Cherokee 45X, request intersection departure from Taxiway Delta, if able."
+                weatherInfo: "",
+                correctResponse: "Metro Tower, Cherokee Four Five X-ray, request intersection departure from Taxiway Delta, if able."
             },
             
             // 3. Takeoff / Departure Phase
             // 3.1 Contacting Tower for Takeoff
             {
                 description: "Request takeoff with direction of flight",
-                position: "Holding short of Runway 27",
-                atcCall: null,
-                weatherInfo: "",
+                position: "Holding short of Runway 27, destination southbound",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Tower, Cessna 3412Z, ready for departure, Runway 27, VFR southbound."
+                weatherInfo: "",
+                correctResponse: "Metro Tower, Cessna Three Four One Two Zulu, ready for departure, Runway Two Seven, VFR southbound."
             },
             {
                 description: "Respond to line up and wait instruction",
                 position: "Holding short of Runway 10",
                 atcCall: "Piper 78D, Runway 10, line up and wait.",
-                weatherInfo: "",
                 aircraft: "Piper Warrior",
                 tailNumber: "N78D",
                 airport: "KTWD - Townsend Airport",
                 isTowered: true,
-                correctResponse: "Runway 10, line up and wait, 78D."
+                weatherInfo: "",
+                correctResponse: "Runway One Zero, line up and wait, Seven Eight Delta."
             },
             // 3.2 Departure Direction / Staying with Tower
             {
                 description: "Respond to departure instructions to remain with tower",
                 position: "On Runway 27, ready for takeoff",
                 atcCall: "Cessna 123AB, after departure fly runway heading, remain on my frequency.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Runway heading, remain with Tower, 123AB."
+                weatherInfo: "",
+                correctResponse: "Runway heading, remain with Tower, One Two Three Alpha Bravo."
             },
             {
                 description: "Respond to frequency change instruction after takeoff",
                 position: "Climbing through 1,000 feet after takeoff from Runway 18",
                 atcCall: "Cherokee 45X, contact Departure on 120.5, have a good flight.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Contact Departure on 120.5, 45X."
+                weatherInfo: "",
+                correctResponse: "Contact Departure on One Two Zero point Five, Four Five X-ray."
             },
             
             // 4. En Route (VFR Flight Following or Self-Navigation)
             // 4.1 Requesting Flight Following
             {
                 description: "Request VFR flight following en route",
-                position: "10 miles west of ACT VOR at 4,500 feet",
+                position: "10 miles west of ACT VOR at 4,500 feet, destination College Station",
                 atcCall: "Cessna 3412Z, Fort Worth Center, go ahead.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KACT - Waco Regional Airport",
                 isTowered: true,
-                correctResponse: "3412Z is a Cessna 172, 10 miles west of ACT VOR at 4,500, request flight following to College Station."
+                weatherInfo: "",
+                correctResponse: "Three Four One Two Zulu is a Cessna One Seven Two, Ten miles west of ACT VOR at Four Thousand Five Hundred, request flight following to College Station."
             },
             {
                 description: "Request VFR advisories while inbound to an airport",
-                position: "20 miles north of Addison Airport at 3,500 feet",
-                atcCall: null,
-                weatherInfo: "",
+                position: "20 miles north of Addison Airport at 3,500 feet, destination Addison Airport",
+                atcCall: "",
                 aircraft: "Piper Archer",
                 tailNumber: "N78D",
                 airport: "KADS - Addison Airport",
                 isTowered: true,
-                correctResponse: "Approach, Piper 78D, 20 miles north of the field at 3,500, request VFR advisories, landing Addison."
+                weatherInfo: "",
+                correctResponse: "Approach, Piper Seven Eight Delta, Two Zero miles north of the field at Three Thousand Five Hundred, request VFR advisories, landing Addison."
             },
             // 4.2 Altitude / Route Changes
             {
                 description: "Request altitude change due to clouds",
                 position: "En route at 4,500 feet with clouds ahead",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KCTR - Center City Airport",
                 isTowered: true,
-                correctResponse: "Center, Cherokee 45X, request climb to 6,500 for clouds."
+                weatherInfo: "",
+                correctResponse: "Center, Cherokee Four Five X-ray, request climb to Six Thousand Five Hundred for clouds."
             },
             {
                 description: "Request route deviation for weather avoidance",
-                position: "En route at 5,500 feet with weather ahead",
-                atcCall: null,
-                weatherInfo: "",
+                position: "En route at 5,500 feet with weather ahead, destination Lake City Airport",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KLKE - Lake City Airport",
                 isTowered: true,
-                correctResponse: "Approach, Cessna 123AB, requesting direct Lake City VOR to avoid weather."
+                weatherInfo: "",
+                correctResponse: "Approach, Cessna One Two Three Alpha Bravo, requesting direct Lake City VOR to avoid weather."
             },
             // 4.3 Leaving Frequency
             {
                 description: "Respond to termination of radar services",
-                position: "30 miles from destination at 4,500 feet",
+                position: "30 miles from destination at 4,500 feet, destination Easterwood Field",
                 atcCall: "Cessna 3412Z, radar service terminated, squawk VFR, frequency change approved.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KCLL - Easterwood Field",
                 isTowered: true,
-                correctResponse: "Squawk VFR, frequency change approved, 3412Z."
+                weatherInfo: "",
+                correctResponse: "Squawk VFR, frequency change approved, Three Four One Two Zulu."
             },
             {
                 description: "Cancel flight following when airport is in sight",
-                position: "15 miles from destination at 3,000 feet with airport in sight",
-                atcCall: null,
-                weatherInfo: "",
+                position: "15 miles from destination at 3,000 feet with airport in sight, destination Fort Worth Spinks Airport",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KFWS - Fort Worth Spinks Airport",
                 isTowered: false,
-                correctResponse: "Center, Cherokee 45X, we have the field in sight, cancel flight following."
+                weatherInfo: "",
+                correctResponse: "Center, Cherokee Four Five X-ray, we have the field in sight, cancel flight following."
             },
             
             // 5. Transitioning Controlled Airspace En Route
@@ -289,141 +241,141 @@ class ScenarioManager {
             {
                 description: "Request transition through Class D airspace",
                 position: "5 miles north of Class D airport at 2,500 feet",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KCTY - City Airport",
                 isTowered: true,
-                correctResponse: "City Tower, Cessna 123AB, 5 miles north at 2,500, request transition through your Class D."
+                weatherInfo: "",
+                correctResponse: "City Tower, Cessna One Two Three Alpha Bravo, Five miles north at Two Thousand Five Hundred, request transition through your Class Delta."
             },
             {
                 description: "Request transition through Class C airspace",
                 position: "10 miles west of Class C airport at 3,000 feet",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Archer",
                 tailNumber: "N78D",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Approach, Piper 78D, 10 miles west at 3,000, request transition through Class C."
+                weatherInfo: "",
+                correctResponse: "Metro Approach, Piper Seven Eight Delta, One Zero miles west at Three Thousand, request transition through Class Charlie."
             },
             // 5.2 Class B Airspace
             {
                 description: "Request transition through Class B airspace",
                 position: "15 miles east of Class B airport at 3,500 feet",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Approach, Cessna 3412Z, 15 miles east at 3,500, request Class B transition."
+                weatherInfo: "",
+                correctResponse: "Metro Approach, Cessna Three Four One Two Zulu, One Five miles east at Three Thousand Five Hundred, request Class Bravo transition."
             },
             {
                 description: "Respond to Class B clearance",
                 position: "10 miles east of Class B airport at 3,500 feet",
                 atcCall: "Cessna 3412Z, you are cleared through the Bravo airspace, maintain VFR at or below 3,500.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Cleared through Bravo, at or below 3,500, 3412Z."
+                weatherInfo: "",
+                correctResponse: "Cleared through Bravo, at or below Three Thousand Five Hundred, Three Four One Two Zulu."
             },
             
             // 6. Arrival at Controlled Field
             // 6.1 Contact Approach or Tower
             {
                 description: "Initial call to tower when inbound for landing",
-                position: "10 miles south at 2,500 feet",
-                atcCall: null,
-                weatherInfo: "Metro Airport, information Delta. Winds 270 at 8 knots. Visibility 10 miles. Clear. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 27.",
+                position: "10 miles south at 2,500 feet, destination Metro Airport",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Tower, Cessna 123AB, 10 miles south at 2,500, inbound full stop with Information Delta."
+                weatherInfo: "Metro Airport, information Delta. Winds 270 at 8 knots. Visibility 10 miles. Clear. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 27.",
+                correctResponse: "Metro Tower, Cessna One Two Three Alpha Bravo, One Zero miles south at Two Thousand Five Hundred, inbound full stop with Information Delta."
             },
             {
                 description: "Initial call to approach when inbound for landing",
-                position: "15 miles east at 3,000 feet",
-                atcCall: null,
-                weatherInfo: "",
+                position: "15 miles east at 3,000 feet, destination Metro Airport",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Approach, Cherokee 45X, 15 miles east at 3,000, inbound for full stop at Metro."
+                weatherInfo: "",
+                correctResponse: "Metro Approach, Cherokee Four Five X-ray, One Five miles east at Three Thousand, inbound for full stop at Metro."
             },
             // 6.2 Traffic Pattern Entry / Sequencing
             {
                 description: "Respond to traffic sequencing instruction",
                 position: "Entering downwind for Runway 27",
                 atcCall: "Cherokee 45X, you're number 2 following a Skyhawk on left base.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Number 2 following Skyhawk, 45X."
+                weatherInfo: "",
+                correctResponse: "Number Two following Skyhawk, Four Five X-ray."
             },
             {
                 description: "Respond to straight-in approach instruction",
                 position: "5 miles east of the airport at 2,000 feet",
                 atcCall: "Cessna 3412Z, enter straight-in Runway 9, report 3-mile final.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KSKY - Skyhawk Airport",
                 isTowered: true,
-                correctResponse: "Straight-in Runway 9, will report 3-mile final, 3412Z."
+                weatherInfo: "",
+                correctResponse: "Straight-in Runway Niner, will report Three-mile final, Three Four One Two Zulu."
             },
             // 6.3 Landing Clearance
             {
                 description: "Respond to landing clearance",
                 position: "On final approach for Runway 27",
                 atcCall: "Cessna 123AB, Runway 27, cleared to land.",
-                weatherInfo: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Runway 27, cleared to land, 123AB."
+                weatherInfo: "",
+                correctResponse: "Runway Two Seven, cleared to land, One Two Three Alpha Bravo."
             },
             {
                 description: "Respond to stop-and-go clearance",
                 position: "On final approach for Runway 18",
                 atcCall: "Cherokee 45X, Runway 18, cleared stop-and-go.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Cleared stop-and-go Runway 18, 45X."
+                weatherInfo: "",
+                correctResponse: "Cleared stop-and-go Runway One Eight, Four Five X-ray."
             },
             // 6.4 Go-Around / Missed Approach
             {
                 description: "Report going around due to unstable approach",
                 position: "On short final for Runway 27",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Tower, 123AB going around."
+                weatherInfo: "",
+                correctResponse: "Tower, One Two Three Alpha Bravo going around."
             },
             {
                 description: "Respond to go-around instruction due to traffic on runway",
                 position: "On short final for Runway 18",
                 atcCall: "Cherokee 45X, traffic on the runway, go around.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Going around, Cherokee 45X."
+                weatherInfo: "",
+                correctResponse: "Going around, Cherokee Four Five X-ray."
             },
             
             // 7. After Landing / Taxi to Parking
@@ -432,163 +384,163 @@ class ScenarioManager {
                 description: "Respond to exit and frequency change instruction after landing",
                 position: "Just landed on Runway 18",
                 atcCall: "Cherokee 45X, exit right at Charlie, contact Ground 121.7.",
-                weatherInfo: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Right at Charlie, then 121.7, 45X."
+                weatherInfo: "",
+                correctResponse: "Right at Charlie, then One Two One point Seven, Four Five X-ray."
             },
             {
                 description: "Report clear of runway after landing",
                 position: "Exiting Runway 27 at Taxiway Delta",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Tower, Cessna 123AB, clear of Runway 27 at Delta."
+                weatherInfo: "",
+                correctResponse: "Tower, Cessna One Two Three Alpha Bravo, clear of Runway Two Seven at Delta."
             },
             // 7.2 Contact Ground Control
             {
                 description: "Request taxi to FBO after landing",
                 position: "Clear of Runway 27 at Taxiway Delta",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Ground, Cessna 123AB, clear of 27 at Delta, taxi to FBO."
+                weatherInfo: "",
+                correctResponse: "Ground, Cessna One Two Three Alpha Bravo, clear of Two Seven at Delta, taxi to FBO."
             },
             {
                 description: "Request taxi to transient parking after landing",
                 position: "At Taxiway Charlie 2 after landing",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Ground, Cherokee 45X, at Charlie 2, request taxi to transient parking."
+                weatherInfo: "",
+                correctResponse: "Ground, Cherokee Four Five X-ray, at Charlie Two, request taxi to transient parking."
             },
             
             // 8. Special Requests / Situational Variations
             // 8.1 Practice Approaches
             {
                 description: "Request practice instrument approach while VFR",
-                position: "15 miles east of airport at 4,000 feet",
-                atcCall: null,
-                weatherInfo: "",
+                position: "15 miles east of airport at 4,000 feet, destination Centerville Airport",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Centerville Approach, Cessna 3412Z, request practice ILS Runway 27, VFR, full stop."
+                weatherInfo: "",
+                correctResponse: "Centerville Approach, Cessna Three Four One Two Zulu, request practice ILS Runway Two Seven, VFR, full stop."
             },
             {
                 description: "Request practice RNAV approach while in the pattern",
                 position: "In the traffic pattern at pattern altitude",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Tower, Cherokee 45X, request VFR practice RNAV approach, option."
+                weatherInfo: "",
+                correctResponse: "Metro Tower, Cherokee Four Five X-ray, request VFR practice RNAV approach, option."
             },
             // 8.2 Emergency Calls
             {
                 description: "Declare an emergency due to engine failure",
                 position: "5 miles east of airport at 2,000 feet",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KXYZ - Centerville Airport",
                 isTowered: true,
-                correctResponse: "Mayday, Mayday, Mayday, Cessna 123AB, engine failure, 5 miles east, 2,000 feet."
+                weatherInfo: "",
+                correctResponse: "Mayday, Mayday, Mayday, Cessna One Two Three Alpha Bravo, engine failure, Five miles east, Two Thousand feet."
             },
             {
                 description: "Declare urgency situation due to partial power loss",
-                position: "10 miles from airport at 3,500 feet",
-                atcCall: null,
-                weatherInfo: "",
+                position: "10 miles from airport at 3,500 feet, destination San Francisco International Airport",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KSFO - San Francisco International Airport",
                 isTowered: true,
-                correctResponse: "Pan-Pan, Pan-Pan, Pan-Pan, Piper 45X, partial power loss, we need immediate return to airport."
+                weatherInfo: "",
+                correctResponse: "Pan-Pan, Pan-Pan, Pan-Pan, Piper Four Five X-ray, partial power loss, we need immediate return to airport."
             },
             // 8.3 SVFR (Special VFR)
             {
                 description: "Request Special VFR departure in marginal weather",
-                position: "At the main ramp",
-                atcCall: null,
-                weatherInfo: "Ceiling 1,200 overcast, visibility 3 miles in light rain",
+                position: "At the main ramp, destination north",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Metro Tower, Cessna 3412Z, request Special VFR to depart to the north."
+                weatherInfo: "Ceiling 1,200 overcast, visibility 3 miles in light rain",
+                correctResponse: "Metro Tower, Cessna Three Four One Two Zulu, request Special VFR to depart to the north."
             },
             {
                 description: "Respond to denial of Special VFR request",
                 position: "5 miles south of airport at 2,000 feet",
                 atcCall: "Cherokee 45X, negative Special VFR, IFR traffic inbound. Remain clear of Class D.",
-                weatherInfo: "Ceiling 900 overcast, visibility 2 miles in mist",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KMET - Metro Airport",
                 isTowered: true,
-                correctResponse: "Remain clear, 45X."
+                weatherInfo: "Ceiling 900 overcast, visibility 2 miles in mist",
+                correctResponse: "Remain clear, Four Five X-ray."
             },
             
             // Additional scenarios for uncontrolled airports
             {
                 description: "Make position report at uncontrolled airport",
-                position: "10 miles south at 2,500 feet",
-                atcCall: null,
-                weatherInfo: "Automated weather: Wind 270 at 5 knots, visibility 10 miles, clear, altimeter 30.01",
+                position: "10 miles south at 2,500 feet, destination Uncontrolled Airport",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KUNX - Uncontrolled Airport",
                 isTowered: false,
-                correctResponse: "Uncontrolled traffic, Cessna 123AB, 10 miles south, inbound for landing, Uncontrolled."
+                weatherInfo: "Automated weather: Wind 270 at 5 knots, visibility 10 miles, clear, altimeter 30.01",
+                correctResponse: "Uncontrolled traffic, Cessna One Two Three Alpha Bravo, One Zero miles south, inbound for landing, Uncontrolled."
             },
             {
                 description: "Report entering downwind at uncontrolled airport",
                 position: "Entering left downwind for Runway 27",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Piper Cherokee",
                 tailNumber: "N45X",
                 airport: "KUNX - Uncontrolled Airport",
                 isTowered: false,
-                correctResponse: "Uncontrolled traffic, Cherokee 45X, entering left downwind for Runway 27, Uncontrolled."
+                weatherInfo: "",
+                correctResponse: "Uncontrolled traffic, Cherokee Four Five X-ray, entering left downwind for Runway Two Seven, Uncontrolled."
             },
             {
                 description: "Report final approach at uncontrolled airport",
                 position: "On final approach for Runway 18",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N3412Z",
                 airport: "KUNX - Uncontrolled Airport",
                 isTowered: false,
-                correctResponse: "Uncontrolled traffic, Cessna 3412Z, final Runway 18, full stop, Uncontrolled."
+                weatherInfo: "",
+                correctResponse: "Uncontrolled traffic, Cessna Three Four One Two Zulu, final Runway One Eight, full stop, Uncontrolled."
             },
             {
                 description: "Report clear of runway at uncontrolled airport",
                 position: "Just exited Runway 27 after landing",
-                atcCall: null,
-                weatherInfo: "",
+                atcCall: "",
                 aircraft: "Cessna 172",
                 tailNumber: "N123AB",
                 airport: "KUNX - Uncontrolled Airport",
                 isTowered: false,
-                correctResponse: "Uncontrolled traffic, Cessna 123AB, clear of Runway 27, taxiing to parking, Uncontrolled."
+                weatherInfo: "",
+                correctResponse: "Uncontrolled traffic, Cessna One Two Three Alpha Bravo, clear of Runway Two Seven, taxiing to parking, Uncontrolled."
             }
         ];
         
@@ -680,40 +632,29 @@ Here are some examples of the format and variety of scenarios:
 
 ${examples}
 
-Focus on creating scenarios that cover a wide range of common VFR communications, including:
-- Initial contact with different ATC facilities (Ground, Tower, Approach, Center)
-- Position reporting at towered and uncontrolled airports
-- Taxi, takeoff, and landing requests
-- Frequency changes
-- Flight following requests
-- Navigating through different airspaces
-- Traffic advisories
-- Weather information requests
-- Emergency or abnormal situations (occasionally)
-
 Your generated scenario MUST follow this exact JSON structure with all required fields:
 {
   "description": "Brief description of the situation and task",
-  "position": "Specific aircraft position in aviation terms",
-  "atcCall": "Initial ATC call if relevant (or null)",
-  "weatherInfo": "Weather information if relevant (or empty string)",
+  "position": "Specific aircraft position in aviation terms, also including destination if relevant/required",
+  "atcCall": "Initial ATC call if relevant (or empty string)",
   "aircraft": "Aircraft type",
   "tailNumber": "Aircraft tail number",
   "airport": "Airport code and name",
   "isTowered": true or false,
-  "correctResponse": "Example of the proper radio call"
+  "weatherInfo": "Weather information in typical ATIS format or AWOS/ASOS format for untowered airports (or empty string)",
+  "correctResponse": "Example of the pilot's proper radio call response"
 }
 
 Important requirements:
-1. The 'position' field is REQUIRED and must clearly indicate the aircraft's location in appropriate aviation terms
-2. Keep the description concise and focused on the situation and task
-3. Don't repeat position information in the description that's already in the position field
-4. Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
-5. Always include atcCall if an initial ATC call is relevant to the scenario (or null if not)
-6. Always include weatherInfo when relevant (or empty string if not)
-7. Choose appropriate aircraft types and real airports across the United States
-8. Use proper aviation terminology and phraseology
-9. ALWAYS include a correctResponse field with an example of the proper radio call for this scenario
+1. Keep the description concise and focused on the situation and task
+2. Don't repeat position information in the description that's already in the position field
+3. Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
+4. Always include atcCall if an initial ATC call is relevant to the scenario (or empty string if not)
+5. Always include weatherInfo when relevant (or empty string if not)
+6. Choose appropriate aircraft types and real airports across the United States
+7. Use proper aviation terminology and phraseology
+8. ALWAYS include every field in the JSON object above (description, position, atcCall, aircraft, tailNumber, airport, isTowered, weatherInfo, correctResponse) 
+9. The generated scenario should be realistic, and educational
 
 Generate only ONE scenario object that strictly follows the given structure. Return ONLY valid JSON with no additional explanations or markdown formatting. The entire response should be parseable with JSON.parse().`;
 
@@ -827,8 +768,8 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
         // Check for optional fields format
         const optionalFields = ['atcCall', 'weatherInfo'];
         for (const field of optionalFields) {
-            if (scenario[field] !== undefined && scenario[field] !== null && typeof scenario[field] !== 'string') {
-                errors.push(`Field ${field} must be a string or null`);
+            if (scenario[field] !== undefined && typeof scenario[field] !== 'string') {
+                errors.push(`Field ${field} must be a string`);
             }
         }
         
