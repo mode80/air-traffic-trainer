@@ -443,20 +443,15 @@ IMPORTANT EVALUATION GUIDELINES:
    - Expect frequencies to be spoken with "point" or "decimal" (e.g., "one one niner point eight")
 
 3. Focus only on content that matters in verbal communications:
-   - IGNORE capitalization, punctuation, and spelling in the evaluation
+   - IGNORE capitalization, punctuation, and spelling or typos in the evaluation
    - Focus on whether the essential information is communicated
    - Consider whether the communication would be clear to ATC or other pilots
 
 4. Be lenient on word order when all required information is present and the meaning is clear.
 
-5. CONVERSATION COMPLETION GUIDELINES:
+5. Conversation Completion Guidelines: 
    - Mark the conversation as complete when the exchange has reached a natural conclusion
-   - For frequency changes, mark as complete after the pilot acknowledges the new frequency
-   - For clearances, mark as complete after the pilot reads back the clearance correctly
-   - For emergency situations, mark as complete when the pilot has acknowledged instructions and is proceeding as directed
-   - DO NOT continue the conversation unnecessarily with repetitive instructions
-   - If the pilot has acknowledged all necessary information, mark the conversation as complete
-   - If the pilot's response is a complete readback of ATC instructions, mark the conversation as complete
+   - If no further ATC response is needed or appropriate, set atcResponse to "" (empty string) AND set conversationComplete to true
 
 Please evaluate ONLY THE MOST RECENT pilot radio call and provide:
 1. A letter grade (A, B, C, D, F) and percentage score (0-100%) for THIS SPECIFIC TRANSMISSION
@@ -464,6 +459,7 @@ Please evaluate ONLY THE MOST RECENT pilot radio call and provide:
 3. An example of the proper communication for this specific transmission
 4. The ATC's response to this specific transmission (if applicable)
 5. Whether this communication concludes the conversation (true/false)
+6. 100% is an appropriate grade when there is no opportunity for improvement
 
 Format your response as valid JSON that can be parsed by JavaScript's JSON.parse():
 {
@@ -471,7 +467,7 @@ Format your response as valid JSON that can be parsed by JavaScript's JSON.parse
   "score": 85,
   "feedback": "Detailed feedback text here",
   "correctExample": "Exact example of correct communication",
-  "atcResponse": "ATC's response to this communication (or null if not applicable)",
+  "atcResponse": "ATC's response to this communication (or empty string if not applicable)",
   "conversationComplete": true/false
 }
 
@@ -513,17 +509,25 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
                     this.displayFeedback(feedbackData);
                     
                     // If there's an ATC response, add it to the conversation
-                    if (feedbackData.atcResponse && feedbackData.atcResponse !== "null") {
+                    if (feedbackData.atcResponse && feedbackData.atcResponse.trim() !== "") {
                         setTimeout(() => {
                             this.addATCMessage(feedbackData.atcResponse);
                         }, 1000); // Slight delay for better UX
+                    } else {
+                        // If there's no ATC response, we can assume the conversation might be complete
+                        console.log("No ATC response received, checking if conversation should end");
                     }
                     
-                    // If the conversation is complete, show the next scenario button
-                    if (feedbackData.conversationComplete) {
+                    // If the conversation is explicitly marked as complete OR there's an empty ATC response
+                    if (feedbackData.conversationComplete || feedbackData.atcResponse.trim() === "") {
+                        console.log("Conversation complete, showing next scenario button");
+                        console.log("Completion reason: " + 
+                            (feedbackData.conversationComplete ? "conversationComplete flag is true" : "empty ATC response"));
                         this.conversationComplete = true;
                         this.interactionInputContainer.classList.add('hidden');
                         this.nextScenarioContainer.classList.remove('hidden');
+                    } else {
+                        console.log("Conversation continuing, ATC response provided");
                     }
                     
                 } catch (e) {
@@ -601,8 +605,15 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
         // Update correct response example
         this.correctResponse.textContent = feedbackData.correctExample;
         
-        // Re-enable button if conversation is not complete
-        if (!feedbackData.conversationComplete) {
+        // Handle conversation state
+        if (feedbackData.conversationComplete) {
+            // If conversation is complete, ensure the next scenario button is shown
+            this.conversationComplete = true;
+            this.interactionInputContainer.classList.add('hidden');
+            this.nextScenarioContainer.classList.remove('hidden');
+            console.log("Conversation marked as complete in displayFeedback");
+        } else {
+            // Re-enable button if conversation is not complete
             this.submitResponseBtn.disabled = false;
         }
     }
