@@ -22,8 +22,8 @@ class ScenarioManager {
         // Sample scenarios for few-shot learning prompt (simplified structure)
         this.fewShotSamples = [
             {
-                title: "Pre-departure Taxi at Palo Alto Airport",
-                description: "You are parked at the main ramp and need to request taxi clearance from ground control for departure to the east on runway 31.",
+                description: "You need to request taxi clearance from ground control for departure to the east on runway 31.",
+                position: "Parked at the main ramp",
                 atcCall: null,
                 weatherInfo: "Palo Alto Airport, information Alpha. Winds 310 at 8 knots. Visibility 10 miles. Clear below 12,000. Temperature 22, dew point 14. Altimeter 29.92. Landing and departing runway 31. Advise on initial contact you have information Alpha.",
                 aircraft: "Cessna 172 Skyhawk",
@@ -33,8 +33,8 @@ class ScenarioManager {
                 correctResponse: "Palo Alto Ground, Skyhawk Five Six Seven Eight Papa at the main ramp with information Alpha, request taxi for eastbound departure."
             },
             {
-                title: "Traffic Advisory Response",
-                description: "You are flying 15 miles east at 4,500 feet MSL, heading 270°. You have received the following traffic advisory from Approach. Respond appropriately.",
+                description: "You have received the following traffic advisory from Approach. Respond appropriately.",
+                position: "15 miles east at 4,500 feet MSL, heading 270°",
                 atcCall: "Cessna Seven One Two Three Four, traffic, two o'clock, five miles, eastbound, altitude indicates three thousand five hundred.",
                 weatherInfo: "",
                 aircraft: "Cessna 172 Skyhawk",
@@ -44,8 +44,8 @@ class ScenarioManager {
                 correctResponse: "Oakland Approach, Cessna Seven One Two Three Four, looking for traffic."
             },
             {
-                title: "Position Report at Uncontrolled Airport",
-                description: "You are flying the downwind leg in the traffic pattern for runway 27 at traffic pattern altitude. You need to make your position report on CTAF.",
+                description: "You need to make your position report on CTAF.",
+                position: "Downwind leg in the traffic pattern for runway 27 at traffic pattern altitude",
                 atcCall: null,
                 weatherInfo: "Reid-Hillview Automated Weather Observation, 1845 Zulu. Wind 250 at 6 knots. Visibility 10 miles. Clear below 12,000. Temperature 23 Celsius, dew point 14 Celsius. Altimeter 29.92. Runway 31L in use.",
                 aircraft: "Cessna 152",
@@ -55,8 +55,8 @@ class ScenarioManager {
                 correctResponse: "Reid-Hillview traffic, Cessna Niner Eight Seven Six Five, midfield downwind for runway two seven, Reid-Hillview."
             },
             {
-                title: "Emergency Declaration",
-                description: "You are flying 20 miles south at 5,500 feet MSL. Your engine has started running rough and you suspect carburetor icing. You need to declare an emergency to ATC.",
+                description: "Your engine has started running rough and you suspect carburetor icing. You need to declare an emergency to ATC.",
+                position: "20 miles south at 5,500 feet MSL",
                 atcCall: null,
                 weatherInfo: "",
                 aircraft: "Piper Cherokee",
@@ -103,6 +103,12 @@ class ScenarioManager {
         this.airportEl.textContent = scenario.airport || "Unknown airport";
         this.airportTypeEl.textContent = scenario.isTowered !== undefined ? 
             (scenario.isTowered ? "Towered" : "Uncontrolled") : "Unknown";
+        
+        // Position information
+        const positionInfoEl = document.getElementById('position-info');
+        if (positionInfoEl) {
+            positionInfoEl.textContent = scenario.position || "Unknown position";
+        }
         
         // Generate airport diagram
         window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered);
@@ -158,17 +164,29 @@ Focus on creating scenarios that cover a wide range of common VFR communications
 - Weather information requests
 - Emergency or abnormal situations (occasionally)
 
-Your generated scenario should match this exact JSON structure with all fields. Make sure to:
-1. Provide a clear, descriptive title
+Your generated scenario MUST follow this exact JSON structure with all required fields:
+{
+  "description": "Brief description of the situation and task",
+  "position": "Specific aircraft position in aviation terms",
+  "atcCall": "Initial ATC call if relevant (or null)",
+  "weatherInfo": "Weather information if relevant (or empty string)",
+  "aircraft": "Aircraft type",
+  "tailNumber": "Aircraft tail number",
+  "airport": "Airport code and name",
+  "isTowered": true or false,
+  "correctResponse": "Example of the proper radio call"
+}
+
+Important requirements:
+1. The 'position' field is REQUIRED and must clearly indicate the aircraft's location in appropriate aviation terms
 2. Keep the description concise and focused on the situation and task
-3. Don't repeat information in the description that's already present in other fields
-   - Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
-   - The user will see the weatherInfo and airport fields separately alongside the description
-4. Always include atcCall if an initial ATC call is relevant to the scenario 
-5. Always include weatherInfo when relevant 
-6. Choose appropriate aircraft types and real airports across the United States
-7. Use proper aviation terminology and phraseology
-8. ALWAYS include a correctResponse field with an example of the proper radio call for this scenario
+3. Don't repeat position information in the description that's already in the position field
+4. Don't mention ATIS code or airport details in the description if they're already in the weatherInfo or airport fields
+5. Always include atcCall if an initial ATC call is relevant to the scenario (or null if not)
+6. Always include weatherInfo when relevant (or empty string if not)
+7. Choose appropriate aircraft types and real airports across the United States
+8. Use proper aviation terminology and phraseology
+9. ALWAYS include a correctResponse field with an example of the proper radio call for this scenario
 
 Generate only ONE scenario object that strictly follows the given structure. Return ONLY valid JSON with no additional explanations or markdown formatting. The entire response should be parseable with JSON.parse().`;
 
@@ -251,7 +269,7 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
     // Validate a scenario object
     validateScenario(scenario) {
         // Check for required fields
-        const requiredFields = ['title', 'description', 'aircraft', 'tailNumber', 'airport', 'isTowered', 'correctResponse'];
+        const requiredFields = ['description', 'position', 'aircraft', 'tailNumber', 'airport', 'isTowered', 'correctResponse'];
         for (const field of requiredFields) {
             if (!scenario[field]) {
                 return false;
