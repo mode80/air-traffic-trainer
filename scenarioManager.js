@@ -636,7 +636,7 @@ Your generated scenario MUST follow this exact JSON structure with all required 
 {
   "description": "Brief description of the situation and task",
   "position": "Specific aircraft position in aviation terms, also including destination if relevant/required",
-  "atcCall": "Initial ATC call if relevant (or empty string)",
+  "atcCall": "Initial ATC call, only for the scenario where ATC would be contacting the pilot first, otherwise empty string",
   "aircraft": "Aircraft type",
   "tailNumber": "Aircraft tail number",
   "airport": "Airport code and name",
