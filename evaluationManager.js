@@ -11,11 +11,17 @@ class EvaluationManager {
         this.feedbackDetails = document.getElementById('feedback-details');
         this.correctResponse = document.getElementById('correct-response');
         
-        // Text input elements
+        // Interaction elements
         this.userResponseInput = document.getElementById('user-response');
         this.submitResponseBtn = document.getElementById('submit-response-btn');
+        this.messagesContainer = document.getElementById('messages-container');
+        this.interactionInputContainer = document.getElementById('interaction-input-container');
+        this.nextScenarioContainer = document.getElementById('next-scenario-container');
+        this.nextScenarioBtn = document.getElementById('next-scenario-btn');
         
-        // No separate audio input elements in the new UI design
+        // Conversation state
+        this.conversationHistory = [];
+        this.conversationComplete = false;
         
         // Initialize
         this.init();
@@ -38,11 +44,32 @@ class EvaluationManager {
             this.evaluateResponse(this.userResponseInput.value);
         });
         
-        // Replace clearResponseBtn with showAnswerBtn
+        // Add Enter key support for the textarea
+        if (this.userResponseInput) {
+            this.userResponseInput.addEventListener('keydown', (e) => {
+                // Submit on Enter (without Shift key)
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Prevent newline
+                    if (this.userResponseInput.value.trim() !== '' && !this.submitResponseBtn.disabled) {
+                        this.evaluateResponse(this.userResponseInput.value);
+                    }
+                }
+            });
+        }
+        
+        // Show answer button
         const showAnswerBtn = document.getElementById('show-answer-btn');
         if (showAnswerBtn) {
             showAnswerBtn.addEventListener('click', () => {
                 this.showCorrectExample();
+            });
+        }
+        
+        // Next scenario button
+        if (this.nextScenarioBtn) {
+            this.nextScenarioBtn.addEventListener('click', () => {
+                this.resetConversation();
+                window.scenarioManager.generateScenario();
             });
         }
     }
@@ -65,6 +92,148 @@ class EvaluationManager {
         
         // Start observing the feedback container
         observer.observe(this.feedbackContainer, { attributes: true });
+    }
+    
+    // Initialize the interaction panel based on the current scenario
+    initializeInteraction() {
+        // Clear any existing messages
+        this.messagesContainer.innerHTML = '';
+        this.conversationHistory = [];
+        this.conversationComplete = false;
+        
+        // Hide the next scenario button
+        this.nextScenarioContainer.classList.add('hidden');
+        
+        // Show the input container
+        this.interactionInputContainer.classList.remove('hidden');
+        
+        // Get the current scenario
+        const currentScenario = window.scenarioManager.getCurrentScenario();
+        if (!currentScenario) return;
+        
+        // If the scenario has an initial ATC call, display it
+        if (currentScenario.atcCall) {
+            this.addATCMessage(currentScenario.atcCall);
+        }
+    }
+    
+    // Reset the conversation for a new scenario
+    resetConversation() {
+        // Clear the conversation history
+        this.conversationHistory = [];
+        this.conversationComplete = false;
+        
+        // Clear the messages container
+        this.messagesContainer.innerHTML = '';
+        
+        // Show the input container
+        this.interactionInputContainer.classList.remove('hidden');
+        
+        // Hide the next scenario button
+        this.nextScenarioContainer.classList.add('hidden');
+        
+        // Clear the input field
+        this.userResponseInput.value = '';
+        
+        // Hide the feedback container
+        this.feedbackContainer.classList.add('hidden');
+        
+        // Reset the audio recording
+        window.resetAudioRecording();
+        
+        // Reset the flag to track whether the user has peeked or made a radio call
+        window.hasPeekedOrMadeFirstCall = false;
+    }
+    
+    // Add an ATC message to the conversation
+    addATCMessage(text) {
+        // Show the messages container if it's hidden
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages && interactionMessages.classList.contains('hidden')) {
+            interactionMessages.classList.remove('hidden');
+        }
+        
+        // Create the message element
+        const messageHTML = `
+            <div class="atc-message mb-3">
+                <div class="flex items-start">
+                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 relative max-w-[85%]">
+                        <button class="play-atc-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
+                                data-speech="${text.replace(/"/g, '&quot;')}" 
+                                title="Play ATC speech">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <p>${text}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add to the messages container
+        this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+        
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'atc',
+            text: text
+        });
+        
+        // Add event listener to the play button
+        const playButton = this.messagesContainer.querySelector('.atc-message:last-child .play-atc-speech');
+        if (playButton) {
+            playButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                const speechText = playButton.getAttribute('data-speech');
+                if (speechText && window.textToSpeechManager) {
+                    window.textToSpeechManager.playATCSpeech(speechText, playButton);
+                }
+            });
+        }
+        
+        // Scroll to the bottom of the messages container
+        this.scrollToBottom();
+    }
+    
+    // Add a pilot message to the conversation
+    addPilotMessage(text) {
+        // Show the messages container if it's hidden
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages && interactionMessages.classList.contains('hidden')) {
+            interactionMessages.classList.remove('hidden');
+        }
+        
+        // Create the message element
+        const messageHTML = `
+            <div class="pilot-message mb-3">
+                <div class="flex items-start justify-end">
+                    <div class="bg-[var(--primary)] text-white rounded-lg p-3 max-w-[85%]">
+                        <p>${text}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add to the messages container
+        this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+        
+        // Add to conversation history
+        this.conversationHistory.push({
+            role: 'pilot',
+            text: text
+        });
+        
+        // Scroll to the bottom of the messages container
+        this.scrollToBottom();
+    }
+    
+    // Scroll to the bottom of the messages container
+    scrollToBottom() {
+        const interactionMessages = document.getElementById('interaction-messages');
+        if (interactionMessages) {
+            interactionMessages.scrollTop = interactionMessages.scrollHeight;
+        }
     }
     
     // New method to show the correct example without evaluation
@@ -127,6 +296,12 @@ class EvaluationManager {
         // Track that user has made a radio call
         window.hasPeekedOrMadeFirstCall = true;
         
+        // Add the pilot's message to the conversation
+        this.addPilotMessage(responseText);
+        
+        // Clear the input field
+        this.userResponseInput.value = '';
+        
         // Show feedback section with loading state
         this.feedbackContainer.classList.remove('hidden');
         this.feedbackLoading.classList.remove('hidden');
@@ -155,19 +330,31 @@ class EvaluationManager {
                 `\nNote: This response was provided via audio recording and then transcribed.` : 
                 `\nNote: This response was typed directly by the user.`;
             
-            // Create prompt with proper context for OpenAI to evaluate, with improved instructions for numeric phraseology
+            // Build conversation history for context
+            let conversationContext = '';
+            if (this.conversationHistory.length > 0) {
+                conversationContext = '\nConversation history:\n';
+                this.conversationHistory.forEach((message, index) => {
+                    if (index === this.conversationHistory.length - 1) {
+                        // The last message is the current pilot message, which we'll evaluate
+                        return;
+                    }
+                    conversationContext += `${message.role === 'atc' ? 'ATC' : 'Pilot'}: "${message.text}"\n`;
+                });
+            }
+            
+            // Create prompt with proper context for OpenAI to evaluate
             const prompt = `You are an FAA examiner evaluating a pilot's radio communication for a VFR scenario. Rate the following radio call and provide feedback based on standard aviation communication practices:
 
 Scenario: ${currentScenario.title}
-${currentScenario.description}
-${currentScenario.atcCall ? 'ATC said: "' + currentScenario.atcCall + '"' : ''}${weatherBlock}
+${currentScenario.description}${conversationContext}${weatherBlock}
 
 Flight Info:
 - Aircraft: ${currentScenario.aircraft}
 - Tail Number: ${currentScenario.tailNumber}
 - Airport: ${currentScenario.airport}${sourceInfo}
 
-Pilot's actual radio call:
+Pilot's actual radio call (ONLY EVALUATE THIS SPECIFIC TRANSMISSION):
 "${responseText}"
 
 IMPORTANT EVALUATION GUIDELINES:
@@ -190,17 +377,30 @@ IMPORTANT EVALUATION GUIDELINES:
 
 4. Be lenient on word order when all required information is present and the meaning is clear.
 
-Please evaluate the pilot's radio communication and provide:
-1. A letter grade (A, B, C, D, F) and percentage score (0-100%)
-2. Specific feedback on what was correct and what needs improvement
-3. An example of the proper communication for this specific scenario with the actual details
+5. CONVERSATION COMPLETION GUIDELINES:
+   - Mark the conversation as complete when the exchange has reached a natural conclusion
+   - For frequency changes, mark as complete after the pilot acknowledges the new frequency
+   - For clearances, mark as complete after the pilot reads back the clearance correctly
+   - For emergency situations, mark as complete when the pilot has acknowledged instructions and is proceeding as directed
+   - DO NOT continue the conversation unnecessarily with repetitive instructions
+   - If the pilot has acknowledged all necessary information, mark the conversation as complete
+   - If the pilot's response is a complete readback of ATC instructions, mark the conversation as complete
+
+Please evaluate ONLY THE MOST RECENT pilot radio call and provide:
+1. A letter grade (A, B, C, D, F) and percentage score (0-100%) for THIS SPECIFIC TRANSMISSION
+2. Specific feedback on what was correct and what needs improvement in THIS TRANSMISSION
+3. An example of the proper communication for this specific transmission
+4. The ATC's response to this specific transmission (if applicable)
+5. Whether this communication concludes the conversation (true/false)
 
 Format your response as valid JSON that can be parsed by JavaScript's JSON.parse():
 {
   "grade": "A-F",
   "score": 85,
   "feedback": "Detailed feedback text here",
-  "correctExample": "Exact example of correct communication"
+  "correctExample": "Exact example of correct communication",
+  "atcResponse": "ATC's response to this communication (or null if not applicable)",
+  "conversationComplete": true/false
 }
 
 Provide ONLY raw JSON in your response with no explanations, additional text, or code block formatting (no \`\`\`).`;
@@ -236,7 +436,24 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
                 try {
                     // Parse the JSON response
                     const feedbackData = JSON.parse(responseContent);
+                    
+                    // Display feedback
                     this.displayFeedback(feedbackData);
+                    
+                    // If there's an ATC response, add it to the conversation
+                    if (feedbackData.atcResponse && feedbackData.atcResponse !== "null") {
+                        setTimeout(() => {
+                            this.addATCMessage(feedbackData.atcResponse);
+                        }, 1000); // Slight delay for better UX
+                    }
+                    
+                    // If the conversation is complete, show the next scenario button
+                    if (feedbackData.conversationComplete) {
+                        this.conversationComplete = true;
+                        this.interactionInputContainer.classList.add('hidden');
+                        this.nextScenarioContainer.classList.remove('hidden');
+                    }
+                    
                 } catch (e) {
                     console.error("Failed to parse JSON response:", e);
                     this.displayErrorFeedback("Failed to parse evaluation response. The API returned an invalid format.");
@@ -312,8 +529,10 @@ Provide ONLY raw JSON in your response with no explanations, additional text, or
         // Update correct response example
         this.correctResponse.textContent = feedbackData.correctExample;
         
-        // Re-enable button
-        this.submitResponseBtn.disabled = false;
+        // Re-enable button if conversation is not complete
+        if (!feedbackData.conversationComplete) {
+            this.submitResponseBtn.disabled = false;
+        }
     }
 
     // Display error feedback

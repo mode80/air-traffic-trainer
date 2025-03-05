@@ -284,25 +284,8 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
         this.newScenarioBtn.disabled = false;
         document.getElementById('submit-response-btn').disabled = false;
         
-        // Create the scenario text with proper null check
+        // Create the scenario text with proper null check - don't include ATC call since it will be in the Interaction panel
         let scenarioText = `<p>${scenario.description || "No scenario description available"}</p>`;
-        
-        // Add ATC communication if present
-        if (scenario.atcCall) {
-            scenarioText += `
-                <div class="mt-3 bg-[var(--light-border)] dark:bg-[var(--dark-border)] p-2 rounded-md font-medium relative">
-                    <button class="play-atc-speech absolute left-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center w-8 h-8 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
-                            data-speech="${scenario.atcCall.replace(/"/g, '&quot;')}" 
-                            title="Play ATC speech">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                    <div class="pl-8">
-                        "${scenario.atcCall}"
-                    </div>
-                </div>`;
-        }
         
         // Display the scenario
         this.scenarioDescription.innerHTML = scenarioText;
@@ -326,6 +309,11 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
         document.getElementById('user-response').value = '';
         window.resetAudioRecording();
         document.getElementById('feedback-container').classList.add('hidden');
+        
+        // Initialize the interaction panel
+        if (window.evaluationManager && typeof window.evaluationManager.initializeInteraction === 'function') {
+            window.evaluationManager.initializeInteraction();
+        }
     }
     
     // Get the current scenario

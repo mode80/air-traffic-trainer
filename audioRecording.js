@@ -10,6 +10,7 @@ class AudioRecorder {
         this.audioPlayer = document.getElementById('audio-player');
         this.userResponseTextarea = document.getElementById('user-response');
         this.transcriptionProcessing = document.getElementById('transcription-processing');
+        this.submitResponseBtn = document.getElementById('submit-response-btn');
         
         // Permission elements
         this.permissionModal = document.getElementById('permission-modal');
@@ -323,6 +324,13 @@ class AudioRecorder {
                 
                 // Show success message
                 window.showToast('Audio transcribed successfully', false);
+                
+                // If we're in a conversation and the conversation is not complete, focus the submit button
+                if (window.evaluationManager && 
+                    !window.evaluationManager.conversationComplete && 
+                    this.submitResponseBtn) {
+                    this.submitResponseBtn.focus();
+                }
                 
             } else {
                 const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));

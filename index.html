@@ -107,10 +107,10 @@
                     </div>
                 </div>
 
-                <!-- Response Input -->
+                <!-- Interaction Panel (replaces Radio Call) -->
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5">
                     <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-xl font-semibold">Radio Call</h2>
+                        <h2 class="text-xl font-semibold">Interaction</h2>
                         <!-- Record Button -->
                         <button id="record-btn" class="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--primary)] hover:bg-[var(--accent)] text-white transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,8 +119,39 @@
                         </button>
                     </div>
 
+                    <!-- Chat Messages Container (hidden initially until it has content) -->
+                    <div id="interaction-messages" class="border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] p-3 mb-4 max-h-[300px] overflow-y-auto hidden">
+                        <!-- Messages will be dynamically added here -->
+                        <div id="messages-container">
+                            <!-- Example of an ATC message (will be dynamically generated) -->
+                            <!-- <div class="atc-message mb-3">
+                                <div class="flex items-start">
+                                    <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 relative max-w-[85%]">
+                                        <button class="play-atc-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
+                                                data-speech="Example ATC message" 
+                                                title="Play ATC speech">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                        <p>Example ATC message</p>
+                                    </div>
+                                </div>
+                            </div> -->
+                            
+                            <!-- Example of a pilot message (will be dynamically generated) -->
+                            <!-- <div class="pilot-message mb-3">
+                                <div class="flex items-start justify-end">
+                                    <div class="bg-[var(--primary)] text-white rounded-lg p-3 max-w-[85%]">
+                                        <p>Example pilot response</p>
+                                    </div>
+                                </div>
+                            </div> -->
+                        </div>
+                    </div>
+                    
                     <!-- Recording indicator overlay (shown when recording) -->
-                    <div id="recording-indicator" class="hidden absolute top-0 left-0 right-0 bottom-0 bg-black bg-opacity-5 flex items-center justify-center z-10 rounded-md">
+                    <div id="recording-indicator" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 rounded-md">
                         <div class="flex flex-col items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
                             <div class="flex items-center mb-2">
                                 <div class="w-4 h-4 rounded-full bg-[var(--recording)] pulse mr-2"></div>
@@ -148,42 +179,51 @@
                         </div>
                     </div>
                     
-                    <!-- Text Input -->
-                    <div id="text-input-container" class="relative">
-                        <textarea id="user-response" placeholder="Type your radio communication here or click the microphone button to record..." class="w-full p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[100px] text-base"></textarea>
-                        
-                        <!-- Transcription processing indicator (hidden by default) -->
-                        <div id="transcription-processing" class="hidden absolute inset-0 bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center">
-                            <div class="flex items-center">
-                                <div class="loading-dots mr-3">
-                                    <span class="bg-[var(--primary)]"></span>
-                                    <span class="bg-[var(--primary)]"></span>
-                                    <span class="bg-[var(--primary)]"></span>
+                    <!-- Input Area (conditionally shown) -->
+                    <div id="interaction-input-container" class="relative">
+                        <div id="text-input-container" class="relative">
+                            <textarea id="user-response" placeholder="Type your radio communication here..." class="w-full p-3 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] min-h-[80px] text-base"></textarea>
+                            
+                            <!-- Transcription processing indicator (hidden by default) -->
+                            <div id="transcription-processing" class="hidden absolute inset-0 bg-[var(--light-bg)] dark:bg-[var(--dark-bg)] bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center">
+                                <div class="flex items-center">
+                                    <div class="loading-dots mr-3">
+                                        <span class="bg-[var(--primary)]"></span>
+                                        <span class="bg-[var(--primary)]"></span>
+                                        <span class="bg-[var(--primary)]"></span>
+                                    </div>
+                                    <p>Processing audio...</p>
                                 </div>
-                                <p>Processing audio...</p>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-3 mt-4">
+                                <button id="submit-response-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                    Submit 
+                                </button>
+                                <button id="show-answer-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors">
+                                    Peek 
+                                </button>
                             </div>
                         </div>
                         
-                        <div class="flex flex-wrap gap-3 mt-4">
-                            <button id="submit-response-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                Submit 
-                            </button>
-                            <button id="show-answer-btn" class="bg-transparent border border-[var(--light-border)] dark:border-[var(--dark-border)] hover:bg-[var(--light-border)] dark:hover:bg-[var(--dark-border)] font-medium py-2 px-4 rounded-md transition-colors">
-                                Peek 
-                            </button>
+                        <!-- Hidden audio player for review (optional) -->
+                        <div id="audio-playback" class="hidden mt-3">
+                            <audio id="audio-player" controls class="w-full"></audio>
                         </div>
                     </div>
                     
-                    <!-- Hidden audio player for review (optional) -->
-                    <div id="audio-playback" class="hidden mt-3">
-                        <audio id="audio-player" controls class="w-full"></audio>
+                    <!-- Next Scenario Button (hidden initially) -->
+                    <div id="next-scenario-container" class="mt-4 text-center hidden">
+                        <button id="next-scenario-btn" class="bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-6 rounded-md transition-colors">
+                            Next Scenario
+                        </button>
                     </div>
                 </div>
             </div>
             
             <!-- Right Side: Flight Information -->
             <div class="lg:col-span-5 order-2 flex flex-col gap-6">
-                <!-- Feedback Section - Moved from left side to right side, above Flight Information -->
+                <!-- Feedback Section - Modified for the interaction model -->
                 <div class="bg-[var(--light-card)] dark:bg-[var(--dark-card)] rounded-lg shadow-md p-5 hidden" id="feedback-container">
                     <h2 class="text-xl font-semibold mb-3">Feedback</h2>
                     <div id="feedback-loading" class="py-4 flex items-center">
@@ -284,8 +324,10 @@
             // Generate initial scenario
             window.scenarioManager.generateScenario();
             
-            // Initialize variable to track whether the "Peek" button has been clicked or the first radio call has been made
+            // Initialize variables for the interaction system
             window.hasPeekedOrMadeFirstCall = false;
+            window.conversationComplete = false;
+            window.textToSpeechManager = new TextToSpeechManager();
         });
     </script>
 </body>
