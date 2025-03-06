@@ -132,16 +132,16 @@ body {
 }
 
 /* Play ATC Speech button */
-.play-atc-speech {
+.play-atc-speech, .play-pilot-speech {
     transition: all 0.2s ease;
 }
 
-.play-atc-speech:hover {
+.play-atc-speech:hover, .play-pilot-speech:hover {
     transform: translate(-4px, -50%) scale(1.1);
     filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5));
 }
 
-.play-atc-speech:active {
+.play-atc-speech:active, .play-pilot-speech:active {
     transform: translate(-4px, -50%) scale(0.95);
 }
 
@@ -160,6 +160,25 @@ body {
 
 .playing {
     animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Message interaction styles */
+.pilot-message, .atc-message {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.pilot-message:hover, .atc-message:hover {
+    transform: translateY(-2px);
+}
+
+.pilot-message:active, .atc-message:active {
+    transform: translateY(0);
+}
+
+/* Pilot message hover effect */
+.pilot-message > div > div {
+    position: relative;
 }
 
 /* Prose styles for markdown content */
@@ -247,4 +266,27 @@ body {
 
 #messages-container:empty {
     display: none !important;
+}
+
+/* Next scenario button styling */
+#next-scenario-container {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--light-border);
+}
+
+.dark #next-scenario-container {
+    border-top-color: var(--dark-border);
+}
+
+#next-scenario-btn {
+    width: 100%;
+    font-weight: bold;
+    padding: 0.75rem;
+    background-color: #10b981; /* Green color for next scenario */
+    transition: background-color 0.2s ease;
+}
+
+#next-scenario-btn:hover {
+    background-color: #059669; /* Darker green on hover */
 }

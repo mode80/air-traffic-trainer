@@ -51,13 +51,17 @@ class ConversationUI {
             interactionMessages.classList.remove('hidden');
         }
         
+        // Generate a unique ID for this message
+        const messageId = `atc-msg-${Date.now()}`;
+        
         // Create the message element
         const messageHTML = `
-            <div class="atc-message mb-3">
+            <div class="atc-message mb-3" data-message-id="${messageId}">
                 <div class="flex items-start">
                     <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 relative max-w-[85%]">
                         <button class="play-atc-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
                                 data-speech="${text.replace(/"/g, '&quot;')}" 
+                                data-message-id="${messageId}"
                                 title="Play ATC speech">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
@@ -73,10 +77,11 @@ class ConversationUI {
         this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
         
         // Add event listener to the play button
-        const playButton = this.messagesContainer.querySelector('.atc-message:last-child .play-atc-speech');
+        const playButton = this.messagesContainer.querySelector(`.atc-message[data-message-id="${messageId}"] .play-atc-speech`);
         if (playButton) {
             playButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent triggering the message click event
                 const speechText = playButton.getAttribute('data-speech');
                 if (speechText && window.textToSpeechManager) {
                     window.textToSpeechManager.playATCSpeech(speechText, playButton);
@@ -87,8 +92,28 @@ class ConversationUI {
             // This is the key difference from the regular addATCMessage method
         }
         
+        // Add click event to the message for audio playback
+        const messageElement = this.messagesContainer.querySelector(`.atc-message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.addEventListener('click', (e) => {
+                // Don't trigger if clicking on the play button
+                if (e.target.closest('.play-atc-speech')) return;
+                
+                // Play the ATC speech
+                const playButton = messageElement.querySelector('.play-atc-speech');
+                if (playButton) {
+                    const speechText = playButton.getAttribute('data-speech');
+                    if (speechText && window.textToSpeechManager) {
+                        window.textToSpeechManager.playATCSpeech(speechText, playButton);
+                    }
+                }
+            });
+        }
+        
         // Scroll to the bottom of the messages container
         this.scrollToBottom();
+        
+        return messageId;
     }
     
     // Add an ATC message to the conversation
@@ -99,13 +124,17 @@ class ConversationUI {
             interactionMessages.classList.remove('hidden');
         }
         
+        // Generate a unique ID for this message
+        const messageId = `atc-msg-${Date.now()}`;
+        
         // Create the message element
         const messageHTML = `
-            <div class="atc-message mb-3">
+            <div class="atc-message mb-3" data-message-id="${messageId}">
                 <div class="flex items-start">
                     <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 relative max-w-[85%]">
                         <button class="play-atc-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
                                 data-speech="${text.replace(/"/g, '&quot;')}" 
+                                data-message-id="${messageId}"
                                 title="Play ATC speech">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
@@ -121,10 +150,11 @@ class ConversationUI {
         this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
         
         // Add event listener to the play button
-        const playButton = this.messagesContainer.querySelector('.atc-message:last-child .play-atc-speech');
+        const playButton = this.messagesContainer.querySelector(`.atc-message[data-message-id="${messageId}"] .play-atc-speech`);
         if (playButton) {
             playButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent triggering the message click event
                 const speechText = playButton.getAttribute('data-speech');
                 if (speechText && window.textToSpeechManager) {
                     window.textToSpeechManager.playATCSpeech(speechText, playButton);
@@ -137,23 +167,55 @@ class ConversationUI {
             }
         }
         
+        // Add click event to the message for audio playback
+        const messageElement = this.messagesContainer.querySelector(`.atc-message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.addEventListener('click', (e) => {
+                // Don't trigger if clicking on the play button
+                if (e.target.closest('.play-atc-speech')) return;
+                
+                // Play the ATC speech
+                const playButton = messageElement.querySelector('.play-atc-speech');
+                if (playButton) {
+                    const speechText = playButton.getAttribute('data-speech');
+                    if (speechText && window.textToSpeechManager) {
+                        window.textToSpeechManager.playATCSpeech(speechText, playButton);
+                    }
+                }
+            });
+        }
+        
         // Scroll to the bottom of the messages container
         this.scrollToBottom();
+        
+        return messageId;
     }
     
     // Add a pilot message to the conversation
-    addPilotMessage(text) {
+    addPilotMessage(text, audioBlob = null) {
         // Show the messages container if it's hidden
         const interactionMessages = document.getElementById('interaction-messages');
         if (interactionMessages && interactionMessages.classList.contains('hidden')) {
             interactionMessages.classList.remove('hidden');
         }
         
-        // Create the message element
+        // Generate a unique ID for this message
+        const messageId = `pilot-msg-${Date.now()}`;
+        
+        // Create the message element with audio playback button if audio is available
         const messageHTML = `
-            <div class="pilot-message mb-3">
+            <div class="pilot-message mb-3" data-message-id="${messageId}">
                 <div class="flex items-start justify-end">
-                    <div class="bg-[var(--primary)] text-white rounded-lg p-3 max-w-[85%]">
+                    <div class="bg-[var(--primary)] text-white rounded-lg p-3 max-w-[85%] relative">
+                        ${audioBlob ? `
+                        <button class="play-pilot-speech absolute -left-8 top-2 flex items-center justify-center w-6 h-6 text-[var(--primary)] hover:text-[var(--accent)] rounded-full transition-colors" 
+                                data-message-id="${messageId}" 
+                                title="Play your recorded response">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        ` : ''}
                         <p>${text}</p>
                     </div>
                 </div>
@@ -163,8 +225,69 @@ class ConversationUI {
         // Add to the messages container
         this.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
         
+        // Store the audio blob if available
+        if (audioBlob) {
+            window.audioRecorder.storeAudioForMessage(messageId, audioBlob);
+        }
+        
+        // Add event listeners for the newly added message
+        const messageElement = this.messagesContainer.querySelector(`.pilot-message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            // Single click/tap to show feedback
+            messageElement.addEventListener('click', (e) => {
+                // Don't trigger if clicking on the play button
+                if (e.target.closest('.play-pilot-speech')) return;
+                
+                // Get the index of this message in the conversation history
+                const messageIndex = this.getMessageIndex(messageId);
+                if (messageIndex !== -1) {
+                    // Show feedback for this message
+                    window.evaluationManager.showFeedbackForMessage(messageIndex);
+                }
+            });
+            
+            // Double click to edit
+            messageElement.addEventListener('dblclick', (e) => {
+                // Don't trigger if double-clicking on the play button
+                if (e.target.closest('.play-pilot-speech')) return;
+                
+                // Get the index of this message in the conversation history
+                const messageIndex = this.getMessageIndex(messageId);
+                if (messageIndex !== -1) {
+                    // Make this message available for correction
+                    window.evaluationManager.correctPreviousResponse(messageIndex);
+                }
+            });
+            
+            // Add event listener to the play button if it exists
+            const playButton = messageElement.querySelector('.play-pilot-speech');
+            if (playButton) {
+                playButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent triggering the message click event
+                    const messageId = playButton.getAttribute('data-message-id');
+                    if (messageId) {
+                        window.audioRecorder.playStoredAudio(messageId);
+                    }
+                });
+            }
+        }
+        
         // Scroll to the bottom of the messages container
         this.scrollToBottom();
+        
+        return messageId;
+    }
+    
+    // Get the index of a message in the conversation history by its ID
+    getMessageIndex(messageId) {
+        if (!window.evaluationManager || !window.evaluationManager.conversationHistory) {
+            return -1;
+        }
+        
+        return window.evaluationManager.conversationHistory.findIndex(
+            msg => msg.messageId === messageId
+        );
     }
     
     // Scroll to the bottom of the messages container
@@ -193,9 +316,9 @@ class ConversationUI {
         }
     }
     
-    // Show the next scenario button and hide the input container
+    // Show the next scenario button (without hiding the input container)
     showNextScenarioButton() {
-        this.interactionInputContainer.classList.add('hidden');
+        // Show the next scenario button without hiding the input container
         this.nextScenarioContainer.classList.remove('hidden');
     }
 }

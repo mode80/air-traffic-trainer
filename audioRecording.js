@@ -23,6 +23,10 @@ class AudioRecorder {
         this.audioURL = null;
         this.isRecording = false;
         
+        // Audio storage for message history
+        this.storedAudio = new Map(); // Map of messageId -> {blob, url}
+        this.currentPlayingAudio = null;
+        
         // Check if all required elements are available
         if (!this.recordBtn || !this.stopRecordingBtn || !this.recordingIndicator || 
             !this.userResponseTextarea || !this.permissionModal || 
@@ -256,6 +260,86 @@ class AudioRecorder {
         this.updateRecordingUI(false);
     }
     
+    // Store audio blob for a specific message
+    storeAudioForMessage(messageId, audioBlob) {
+        if (!messageId || !audioBlob) return;
+        
+        // Create a URL for the blob
+        const audioURL = URL.createObjectURL(audioBlob);
+        
+        // Store both the blob and URL
+        this.storedAudio.set(messageId, {
+            blob: audioBlob,
+            url: audioURL
+        });
+        
+        console.log(`Stored audio for message ${messageId}`);
+    }
+    
+    // Play stored audio for a specific message
+    playStoredAudio(messageId) {
+        if (!messageId) return;
+        
+        // Get the stored audio
+        const audioData = this.storedAudio.get(messageId);
+        if (!audioData || !audioData.url) {
+            console.warn(`No audio found for message ${messageId}`);
+            return;
+        }
+        
+        // Stop any currently playing audio
+        if (this.currentPlayingAudio) {
+            this.currentPlayingAudio.pause();
+            this.currentPlayingAudio = null;
+        }
+        
+        // Create and play the audio
+        const audio = new Audio(audioData.url);
+        
+        // Add event listeners
+        audio.addEventListener('play', () => {
+            // Update UI to show playing state
+            const playButton = document.querySelector(`.play-pilot-speech[data-message-id="${messageId}"]`);
+            if (playButton) {
+                playButton.classList.add('playing');
+            }
+        });
+        
+        audio.addEventListener('ended', () => {
+            // Reset UI when playback ends
+            const playButton = document.querySelector(`.play-pilot-speech[data-message-id="${messageId}"]`);
+            if (playButton) {
+                playButton.classList.remove('playing');
+            }
+            this.currentPlayingAudio = null;
+        });
+        
+        audio.addEventListener('error', (e) => {
+            console.error('Audio playback error:', e);
+            window.showToast('Error playing audio', true);
+            
+            // Reset UI
+            const playButton = document.querySelector(`.play-pilot-speech[data-message-id="${messageId}"]`);
+            if (playButton) {
+                playButton.classList.remove('playing');
+            }
+            this.currentPlayingAudio = null;
+        });
+        
+        // Store reference to current audio
+        this.currentPlayingAudio = audio;
+        
+        // Play the audio
+        audio.play()
+            .then(() => {
+                window.showToast('Playing your recorded response...', false);
+            })
+            .catch(err => {
+                console.error('Error playing audio:', err);
+                window.showToast('Failed to play audio', true);
+            });
+    }
+    
     // Transcribe audio using OpenAI's Speech-to-Text API
     async transcribeAudio(audioBlob) {
         try {
@@ -330,11 +414,15 @@ class AudioRecorder {
                 // Show success message
                 window.showToast('Audio transcribed successfully', false);
                 
+                // Check if we're in edit mode (re-recording a previous response)
+                if (window.evaluationManager && window.evaluationManager.editingMessageIndex >= 0) {
+                    // Submit the corrected response with the new audio
+                    window.evaluationManager.submitCorrectedResponse(formattedText, this.audioBlob);
+                } 
                 // If we're in a conversation and the conversation is not complete, automatically submit the response
-                if (window.evaluationManager && 
-                    !window.evaluationManager.conversationComplete) {
-                    // Call the evaluateResponse method with the transcribed text
-                    window.evaluationManager.evaluateResponse(formattedText, true);
+                else if (window.evaluationManager && !window.evaluationManager.conversationComplete) {
+                    // Call the evaluateResponse method with the transcribed text and the audio blob
+                    window.evaluationManager.evaluateResponse(formattedText, true, this.audioBlob);
                 }
                 
             } else {

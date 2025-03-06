@@ -9,6 +9,8 @@ class EvaluationManager {
         // Conversation state
         this.conversationHistory = [];
         this.conversationComplete = false;
+        this.feedbackHistory = []; // Store feedback for each pilot response
+        this.editingMessageIndex = -1; // Index of the message being edited, -1 if not editing
         
         // UI Managers
         this.conversationUI = new window.ConversationUI();
@@ -29,7 +31,11 @@ class EvaluationManager {
     setupEventListeners() {
         // Text input controls
         this.submitResponseBtn.addEventListener('click', () => {
-            this.evaluateResponse(this.userResponseInput.value);
+            if (this.editingMessageIndex >= 0) {
+                this.submitCorrectedResponse(this.userResponseInput.value);
+            } else {
+                this.evaluateResponse(this.userResponseInput.value);
+            }
         });
         
         // Add Enter key support for the textarea
@@ -39,7 +45,11 @@ class EvaluationManager {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault(); // Prevent newline
                     if (this.userResponseInput.value.trim() !== '' && !this.submitResponseBtn.disabled) {
-                        this.evaluateResponse(this.userResponseInput.value);
+                        if (this.editingMessageIndex >= 0) {
+                            this.submitCorrectedResponse(this.userResponseInput.value);
+                        } else {
+                            this.evaluateResponse(this.userResponseInput.value);
+                        }
                     }
                 }
             });
@@ -68,6 +78,8 @@ class EvaluationManager {
         // Reset conversation state
         this.conversationHistory = [];
         this.conversationComplete = false;
+        this.feedbackHistory = [];
+        this.editingMessageIndex = -1;
         
         // Initialize the UI
         this.conversationUI.initializeInteraction(this.conversationHistory);
@@ -78,9 +90,11 @@ class EvaluationManager {
         
         // If the scenario has an initial ATC call, add it to conversation history
         if (currentScenario.atcCall) {
+            const messageId = this.conversationUI.addInitialATCMessage(currentScenario.atcCall);
             this.conversationHistory.push({
                 role: 'atc',
-                text: currentScenario.atcCall
+                text: currentScenario.atcCall,
+                messageId: messageId
             });
         }
     }
@@ -90,6 +104,8 @@ class EvaluationManager {
         // Clear the conversation history
         this.conversationHistory = [];
         this.conversationComplete = false;
+        this.feedbackHistory = [];
+        this.editingMessageIndex = -1;
         
         // Reset the UI
         this.conversationUI.resetConversation();
@@ -103,36 +119,150 @@ class EvaluationManager {
         // Reset the audio recording
         window.resetAudioRecording();
         
+        // Reset the submit button to normal state
+        this.submitResponseBtn.textContent = 'Submit';
+        this.submitResponseBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+        this.submitResponseBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
+        
         // Reset the flag to track whether the user has peeked or made a radio call
         window.hasPeekedOrMadeFirstCall = false;
     }
     
     // Add a pilot message to the conversation
-    addPilotMessage(text) {
-        // Add to conversation history
+    addPilotMessage(text, audioBlob = null) {
+        // Add to conversation history with a unique message ID
+        const messageId = this.conversationUI.addPilotMessage(text, audioBlob);
+        
         this.conversationHistory.push({
             role: 'pilot',
-            text: text
+            text: text,
+            messageId: messageId,
+            audioBlob: audioBlob
         });
         
-        // Update the UI
-        this.conversationUI.addPilotMessage(text);
+        return messageId;
     }
     
     // Add an ATC message to the conversation
     addATCMessage(text) {
-        // Add to conversation history
+        // Add to conversation history with a unique message ID
+        const messageId = this.conversationUI.addATCMessage(text);
+        
         this.conversationHistory.push({
             role: 'atc',
-            text: text
+            text: text,
+            messageId: messageId
         });
         
-        // Update the UI
-        this.conversationUI.addATCMessage(text);
+        return messageId;
+    }
+    
+    // Show feedback for a specific message
+    showFeedbackForMessage(messageIndex) {
+        if (messageIndex < 0 || messageIndex >= this.conversationHistory.length) {
+            console.error(`Invalid message index: ${messageIndex}`);
+            return;
+        }
+        
+        const message = this.conversationHistory[messageIndex];
+        if (message.role !== 'pilot') {
+            console.warn(`Cannot show feedback for non-pilot message at index ${messageIndex}`);
+            return;
+        }
+        
+        // Find the corresponding feedback in the feedback history
+        const feedback = this.feedbackHistory.find(fb => fb.messageIndex === messageIndex);
+        if (!feedback) {
+            console.warn(`No feedback found for message at index ${messageIndex}`);
+            return;
+        }
+        
+        // Display the feedback
+        this.feedbackUI.displayFeedback(feedback.data);
+    }
+    
+    // Make a previous response available for correction
+    correctPreviousResponse(messageIndex) {
+        if (messageIndex < 0 || messageIndex >= this.conversationHistory.length) {
+            console.error(`Invalid message index: ${messageIndex}`);
+            return;
+        }
+        
+        const message = this.conversationHistory[messageIndex];
+        if (message.role !== 'pilot') {
+            console.warn(`Cannot correct non-pilot message at index ${messageIndex}`);
+            return;
+        }
+        
+        // Set the editing message index
+        this.editingMessageIndex = messageIndex;
+        
+        // Set the text in the input field
+        this.userResponseInput.value = message.text;
+        
+        // Focus the input field
+        this.userResponseInput.focus();
+        
+        // Update UI to show we're in editing mode
+        this.submitResponseBtn.textContent = 'Update';
+        this.submitResponseBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+        this.submitResponseBtn.classList.remove('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
+        this.submitResponseBtn.disabled = false;
+        
+        // Show a toast notification
+        window.showToast('Editing previous response. Submit to replace.', false);
+    }
+    
+    // Submit a corrected response
+    async submitCorrectedResponse(text, audioBlob = null) {
+        if (this.editingMessageIndex < 0) {
+            console.error('No message is being edited');
+            return;
+        }
+        
+        if (!text || text.trim() === '') {
+            window.showToast('Please provide a radio communication before submitting', true);
+            return;
+        }
+        
+        // Get the current scenario
+        const currentScenario = window.scenarioManager.getCurrentScenario();
+        if (!currentScenario) {
+            window.showToast('No active scenario. Please generate a scenario first.', true);
+            return;
+        }
+        
+        // Get the original message
+        const originalMessage = this.conversationHistory[this.editingMessageIndex];
+        
+        // Remove all messages after the edited message
+        this.conversationHistory = this.conversationHistory.slice(0, this.editingMessageIndex);
+        
+        // Remove all feedback entries for the removed messages
+        this.feedbackHistory = this.feedbackHistory.filter(fb => fb.messageIndex < this.editingMessageIndex);
+        
+        // Clear the messages container and re-add the remaining messages
+        this.conversationUI.messagesContainer.innerHTML = '';
+        for (const msg of this.conversationHistory) {
+            if (msg.role === 'atc') {
+                this.conversationUI.addATCMessage(msg.text);
+            } else {
+                this.conversationUI.addPilotMessage(msg.text, msg.audioBlob);
+            }
+        }
+        
+        // Reset editing state
+        this.editingMessageIndex = -1;
+        this.submitResponseBtn.textContent = 'Submit';
+        this.submitResponseBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+        this.submitResponseBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
+        
+        // Now evaluate the new response
+        await this.evaluateResponse(text, audioBlob !== null, audioBlob);
     }
     
     // Evaluate user response using OpenAI's GPT-4o model
-    async evaluateResponse(responseText, isAudio = false) {
+    async evaluateResponse(responseText, isAudio = false, audioBlob = null) {
         if (!responseText || responseText.trim() === '') {
             window.showToast('Please provide a radio communication before submitting', true);
             return;
@@ -149,7 +279,7 @@ class EvaluationManager {
         window.hasPeekedOrMadeFirstCall = true;
         
         // Add the pilot's message to the conversation
-        this.addPilotMessage(responseText);
+        this.addPilotMessage(responseText, audioBlob);
         
         // Clear the input field
         this.userResponseInput.value = '';
@@ -181,6 +311,12 @@ class EvaluationManager {
             
             // Call the OpenAI API
             const feedbackData = await window.ApiService.callOpenAI(prompt);
+            
+            // Store the feedback in the feedback history
+            this.feedbackHistory.push({
+                messageIndex: this.conversationHistory.length - 1,
+                data: feedbackData
+            });
             
             // Display feedback
             this.feedbackUI.displayFeedback(feedbackData);
