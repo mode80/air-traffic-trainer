@@ -67,38 +67,277 @@ window.showApiKeyInfo = function() {
 
 
 // Generate a simple airport diagram
-window.generateAirportDiagram = function(container, isTowered) {
-    // Create a simpler airport diagram with HTML/CSS
+window.generateAirportDiagram = function(container, isTowered, positionInfo = '') {
     const isDarkMode = document.body.classList.contains('dark');
     const bgColor = isDarkMode ? '#262626' : '#F0F0F0';
     const runwayColor = isDarkMode ? '#505050' : '#333333';
     const taxiwayColor = isDarkMode ? '#364968' : '#6B8CCF';
     const textColor = isDarkMode ? '#E0E0E0' : '#333333';
+    const aircraftColor = isDarkMode ? '#E0E0E0' : '#D32F2F';
     
-    container.innerHTML = `
+    // Parse the position information to determine aircraft location
+    const aircraftPosition = parseAircraftPosition(positionInfo);
+    
+    // Base diagram HTML
+    let diagramHTML = `
         <div style="width:100%; height:100%; background-color:${bgColor}; position:relative; border-radius:0.5rem; overflow:hidden;">
             <!-- North indicator -->
-            <div style="position:absolute; top:15px; left:15px; color:${textColor}; border:1px solid ${textColor}; width:24px; height:24px; border-radius:50%; text-align:center; line-height:22px;">
+            <div style="position:absolute; top:15px; left:15px; color:${textColor}; border:1px solid ${textColor}; width:24px; height:24px; border-radius:50%; text-align:center; line-height:22px; z-index:20;">
                 N
             </div>
             
-            <!-- Primary runway -->
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(45deg); background-color:${runwayColor}; width:70%; height:20px;"></div>
-            
-            ${isTowered ? 
-            `<!-- Secondary runway (towered) -->
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(90deg); background-color:${runwayColor}; width:60%; height:16px;"></div>` : ''}
-            
-            <!-- Terminal area -->
-            <div style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; width:120px; height:20px;"></div>
-            
-            <!-- Taxiway -->
-            <div style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); background-color:${taxiwayColor}; width:70%; height:8px;"></div>
-        </div>
+            <!-- Airport area (centered and larger) -->
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; height:60%;">
+                <!-- Primary runway -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(45deg); background-color:${runwayColor}; width:80%; height:12px;"></div>
+                
+                ${isTowered ? 
+                `<!-- Secondary runway (towered) -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(90deg); background-color:${runwayColor}; width:70%; height:10px;"></div>` : ''}
+                
+                <!-- Taxiway - positioned in bottom right quadrant -->
+                <div style="position:absolute; bottom:30%; right:30%; width:30%; height:5px; background-color:${taxiwayColor};"></div>
+                
+                <!-- Ramp/Terminal area - positioned at the end of the taxiway, away from runways -->
+                <div style="position:absolute; bottom:30%; right:15%; width:15%; height:15%; background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; border-radius:3px;"></div>
+            </div>
     `;
     
+    // Add aircraft icon and position label if position info is available
+    if (aircraftPosition.valid) {
+        // Position the aircraft based on the parsed location
+        const { x, y, rotation, label } = aircraftPosition;
+        
+        diagramHTML += `
+            <!-- Aircraft icon -->
+            <div style="position:absolute; top:${y}%; left:${x}%; transform:translate(-50%, -50%);">
+                <div style="transform:rotate(${rotation}deg);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="${aircraftColor}" style="filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));">
+                        <polygon points="12,0 0,24 24,24" />
+                    </svg>
+                </div>
+                <div style="position:absolute; top:18px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:3px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:30;">
+                    ${label}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Close the container div
+    diagramHTML += `</div>`;
+    
+    container.innerHTML = diagramHTML;
     return container;
 };
+
+/**
+ * Parse aircraft position information to determine location on the airport diagram
+ * @param {string} positionInfo - The position information from the scenario
+ * @returns {object} - Position data for rendering on the diagram
+ */
+function parseAircraftPosition(positionInfo) {
+    if (!positionInfo) {
+        return { valid: false };
+    }
+    
+    // Default position (invalid)
+    let result = { valid: false };
+    
+    // Convert to lowercase for easier matching
+    const positionLower = positionInfo.toLowerCase();
+    
+    // Check for common position patterns
+    
+    // On the ground at a specific location (ramp, terminal, etc.)
+    if (positionLower.includes('ramp') || 
+        positionLower.includes('terminal') || 
+        positionLower.includes('fbo') || 
+        positionLower.includes('parked')) {
+        result = {
+            valid: true,
+            x: 85, // Right side where the ramp is now
+            y: 70, // Bottom area where the ramp is positioned
+            rotation: 0,
+            label: 'At ' + positionInfo.split(',')[0]
+        };
+    }
+    // Holding short of runway
+    else if (positionLower.includes('holding short')) {
+        let runwayMatch = positionLower.match(/runway\s+(\d+)/i);
+        let runway = runwayMatch ? runwayMatch[1] : '';
+        
+        // Position based on runway number
+        let x = 50, y = 50;
+        let rotation = 0;
+        
+        // Determine position based on runway number
+        if (runway) {
+            const runwayNum = parseInt(runway, 10);
+            if (runwayNum <= 9) {  // Runways 1-9
+                x = 35;
+                y = 50;
+                rotation = 90;  // Facing east
+            } else if (runwayNum <= 18) {  // Runways 10-18
+                // For runway 14, position at the edge of the vertical runway
+                if (runwayNum === 14) {
+                    x = 42;
+                    y = 35;
+                    rotation = 180;  // Facing south
+                } else {
+                    x = 60;
+                    y = 35;
+                    rotation = 180;  // Facing south
+                }
+            } else if (runwayNum <= 27) {  // Runways 19-27
+                x = 65;
+                y = 50;
+                rotation = 270;  // Facing west
+            } else {  // Runways 28-36
+                // For runway 32, position at the edge of the diagonal runway
+                if (runwayNum === 32) {
+                    x = 58;
+                    y = 65;
+                    rotation = 45;  // Facing northeast
+                } else {
+                    x = 50;
+                    y = 65;
+                    rotation = 0;  // Facing north
+                }
+            }
+        }
+        
+        result = {
+            valid: true,
+            x,
+            y,
+            rotation,
+            label: `Holding short RWY ${runway}`
+        };
+    }
+    // On a specific taxiway
+    else if (positionLower.includes('taxiway') || positionLower.match(/taxiway\s+[a-z]/i)) {
+        let taxiwayMatch = positionLower.match(/taxiway\s+([a-z])/i);
+        let taxiway = taxiwayMatch ? taxiwayMatch[1].toUpperCase() : '';
+        
+        result = {
+            valid: true,
+            x: 70, // Center of the taxiway
+            y: 70, // Bottom area where the taxiway is positioned
+            rotation: 0, // Aligned with the taxiway
+            label: `On Taxiway ${taxiway}`
+        };
+    }
+    // On final approach or on a specific leg of the pattern
+    else if (positionLower.includes('final') || 
+             positionLower.includes('downwind') || 
+             positionLower.includes('base')) {
+        
+        let x = 50, y = 50, rotation = 0;
+        let approachType = '';
+        
+        if (positionLower.includes('final')) {
+            // Final approach - coming in from the edge toward the runway
+            x = 80;
+            y = 65;
+            rotation = 225; // Approaching from the right
+            approachType = 'Final';
+        } else if (positionLower.includes('downwind')) {
+            // Downwind - parallel to the runway in the opposite direction
+            x = 20;
+            y = 35;
+            rotation = 45; // Parallel to runway, opposite direction
+            approachType = 'Downwind';
+        } else if (positionLower.includes('base')) {
+            // Base - perpendicular to the runway, transitioning from downwind to final
+            x = 25;
+            y = 65;
+            rotation = 135; // Perpendicular to runway
+            approachType = 'Base';
+        }
+        
+        result = {
+            valid: true,
+            x,
+            y,
+            rotation,
+            label: `On ${approachType}`
+        };
+    }
+    // Miles from the airport in a specific direction
+    else if (positionLower.match(/(\d+)\s*miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i)) {
+        const matches = positionLower.match(/(\d+)\s*miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
+        const distance = parseInt(matches[1], 10);
+        const direction = matches[2].toLowerCase();
+        
+        // Calculate position based on distance and direction
+        // Use a more aggressive scaling to push distant aircraft further to the edges
+        // A distance of 5 miles or more will be near the edge of the container
+        const distanceFactor = Math.min(distance / 5, 1);
+        
+        // Determine position based on direction and scaled distance
+        let x = 50, y = 50, rotation = 0;
+        const offset = 40 * distanceFactor; // Maximum offset from center (40% of container)
+        
+        switch (direction) {
+            case 'north':
+                x = 50; y = 10 + (1 - distanceFactor) * 40; rotation = 180; break;
+            case 'south':
+                x = 50; y = 90 - (1 - distanceFactor) * 40; rotation = 0; break;
+            case 'east':
+                x = 90 - (1 - distanceFactor) * 40; y = 50; rotation = 270; break;
+            case 'west':
+                x = 10 + (1 - distanceFactor) * 40; y = 50; rotation = 90; break;
+            case 'northeast':
+                x = 85 - (1 - distanceFactor) * 35; y = 15 + (1 - distanceFactor) * 35; rotation = 225; break;
+            case 'northwest':
+                x = 15 + (1 - distanceFactor) * 35; y = 15 + (1 - distanceFactor) * 35; rotation = 135; break;
+            case 'southeast':
+                x = 85 - (1 - distanceFactor) * 35; y = 85 - (1 - distanceFactor) * 35; rotation = 315; break;
+            case 'southwest':
+                x = 15 + (1 - distanceFactor) * 35; y = 85 - (1 - distanceFactor) * 35; rotation = 45; break;
+        }
+        
+        // Extract altitude if available
+        let altitude = '';
+        const altMatch = positionLower.match(/at\s+(\d+,?\d*)\s*feet/i);
+        if (altMatch) {
+            altitude = `, ${altMatch[1].replace(',', '')} ft`;
+        }
+        
+        result = {
+            valid: true,
+            x,
+            y,
+            rotation,
+            label: `${distance} mi ${direction}${altitude}`
+        };
+    }
+    // Just landed or on the runway
+    else if (positionLower.includes('landed') || positionLower.includes('runway')) {
+        let runwayMatch = positionLower.match(/runway\s+(\d+)/i);
+        let runway = runwayMatch ? runwayMatch[1] : '';
+        
+        result = {
+            valid: true,
+            x: 50, // Center of the runway
+            y: 50,
+            rotation: 45, // Aligned with the runway
+            label: runway ? `On RWY ${runway}` : 'On Runway'
+        };
+    }
+    // If we can't determine a specific position, but we have some info
+    else {
+        result = {
+            valid: true,
+            x: 50,
+            y: 50,
+            rotation: 0,
+            label: positionInfo.split(',')[0]
+        };
+    }
+    
+    return result;
+}
 
 // Show permission modal for microphone access
 window.showMicrophonePermissionModal = function() {

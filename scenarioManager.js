@@ -583,12 +583,21 @@ class ScenarioManager {
         
         // Position information
         const positionInfoEl = document.getElementById('position-info');
+        const positionContainer = document.getElementById('position-container');
         if (positionInfoEl) {
-            positionInfoEl.textContent = scenario.position || "Unknown position";
+            const positionText = scenario.position || "Unknown position";
+            positionInfoEl.textContent = positionText;
+            
+            // Hide the position container since we'll show it on the diagram
+            if (positionContainer && positionText !== "Unknown position") {
+                positionContainer.classList.add('hidden');
+            } else if (positionContainer) {
+                positionContainer.classList.remove('hidden');
+            }
         }
         
-        // Generate airport diagram
-        window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered);
+        // Generate airport diagram with position information
+        window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered, scenario.position);
         
         // Weather information - only show if there's weather info available
         if (scenario.weatherInfo && scenario.weatherInfo.trim() !== '') {
