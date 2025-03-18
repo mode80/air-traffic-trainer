@@ -78,7 +78,7 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
     // Parse the position information to determine aircraft location
     const aircraftPosition = parseAircraftPosition(positionInfo);
     
-    // Base diagram HTML
+    // Create a square container with proper padding
     let diagramHTML = `
         <div style="width:100%; height:100%; background-color:${bgColor}; position:relative; border-radius:0.5rem; overflow:hidden;">
             <!-- North indicator -->
@@ -86,19 +86,19 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                 N
             </div>
             
-            <!-- Airport area (centered and larger) -->
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60%; height:60%;">
-                <!-- Primary runway -->
-                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(45deg); background-color:${runwayColor}; width:80%; height:12px;"></div>
+            <!-- Create a square container with padding -->
+            <div id="airport-container" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:70%; height:70%; max-width:70%; max-height:70%;">
+                <!-- Primary runway - doubled height from 8px to 16px -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(45deg); background-color:${runwayColor}; width:80%; height:16px;"></div>
                 
                 ${isTowered ? 
-                `<!-- Secondary runway (towered) -->
-                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(90deg); background-color:${runwayColor}; width:70%; height:10px;"></div>` : ''}
+                `<!-- Secondary runway (towered) - doubled height from 6px to 12px -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(90deg); background-color:${runwayColor}; width:70%; height:12px;"></div>` : ''}
                 
-                <!-- Adjusted horizontal taxiway - starts at left edge and extends just past right-most runway -->
-                <div style="position:absolute; top:70%; left:20%; width:65%; height:5px; background-color:${taxiwayColor}; z-index:2;"></div>
+                <!-- Horizontal taxiway - doubled height from 4px to 8px -->
+                <div style="position:absolute; top:70%; left:20%; width:65%; height:8px; background-color:${taxiwayColor}; z-index:2;"></div>
                 
-                <!-- Ramp area on the left side of the diagram, on top of the taxiway -->
+                <!-- Ramp area on the left side of the diagram -->
                 <div style="position:absolute; top:70%; left:20%; width:15%; height:15%; background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; border-radius:3px; z-index:1;"></div>
             </div>
     `;
@@ -106,17 +106,40 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
     // Add aircraft icon and position label if position info is available
     if (aircraftPosition.valid) {
         // Position the aircraft based on the parsed location
+        // We need to map from the original 0-100% coordinate system to our new padded system
         const { x, y, rotation, label } = aircraftPosition;
         
+        // Map coordinates from original 0-100 range to our new padded system
+        // Original coordinates are in 0-100 range, we need to map them to the 15-85 range (70% usable space)
+        // Formula: newPos = 15 + (originalPos * 0.7)
+        
+        // For south direction, we want to position at the very bottom edge
+        let mappedX, mappedY;
+        
+        if (label && label.toLowerCase().includes('south')) {
+            // For south direction, position at the bottom edge
+            mappedX = 15 + (x * 0.7);
+            mappedY = 85; // Bottom edge
+        } else if (label && label.toLowerCase().includes('north')) {
+            // For north direction, position at the top edge
+            mappedX = 15 + (x * 0.7);
+            mappedY = 15; // Top edge
+        } else {
+            // Normal mapping for other positions
+            mappedX = 15 + (x * 0.7);
+            mappedY = 15 + (y * 0.7);
+        }
+        
+        // Make the aircraft icon slightly larger for better visibility with the thicker runways
         diagramHTML += `
             <!-- Aircraft icon -->
-            <div style="position:absolute; top:${y}%; left:${x}%; transform:translate(-50%, -50%);">
+            <div style="position:absolute; top:${mappedY}%; left:${mappedX}%; transform:translate(-50%, -50%);">
                 <div style="transform:rotate(${rotation}deg);">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="${aircraftColor}" style="filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="${aircraftColor}" style="filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));">
                         <polygon points="12,0 0,24 24,24" />
                     </svg>
                 </div>
-                <div style="position:absolute; top:18px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:3px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:30;">
+                <div style="position:absolute; top:19px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:3px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:30;">
                     ${label}
                 </div>
             </div>
@@ -127,6 +150,21 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
     diagramHTML += `</div>`;
     
     container.innerHTML = diagramHTML;
+    
+    // Ensure the airport container is square after rendering
+    const airportContainer = container.querySelector('#airport-container');
+    if (airportContainer) {
+        // Get the smaller dimension (width or height) of the parent container
+        const parentWidth = container.clientWidth;
+        const parentHeight = container.clientHeight;
+        const smallerDimension = Math.min(parentWidth, parentHeight);
+        
+        // Set the airport container to 70% of the smaller dimension to maintain square aspect ratio
+        const containerSize = smallerDimension * 0.7;
+        airportContainer.style.width = containerSize + 'px';
+        airportContainer.style.height = containerSize + 'px';
+    }
+    
     return container;
 };
 
@@ -153,12 +191,25 @@ function parseAircraftPosition(positionInfo) {
         positionLower.includes('terminal') || 
         positionLower.includes('fbo') || 
         positionLower.includes('parked')) {
+        
+        // Extract the position description without adding redundant "At"
+        let positionDescription = positionInfo.split(',')[0];
+        
+        // If the position already starts with "At", "On", "In", "Parked", etc., don't add another prefix
+        if (positionDescription.match(/^(At|On|In|Parked|Holding|Taxiing)/i)) {
+            // Use the description as is
+            positionDescription = positionDescription.trim();
+        } else {
+            // Add "At" prefix only if needed
+            positionDescription = 'At ' + positionDescription;
+        }
+        
         result = {
             valid: true,
-            x: 20, // Left side where the ramp is now
-            y: 70, // Bottom area where the ramp is positioned
+            x: 32, // Moved further to the right on the ramp area
+            y: 72, // Moved slightly downward
             rotation: 90, // Facing the taxiway (east)
-            label: 'At ' + positionInfo.split(',')[0]
+            label: positionDescription
         };
     }
     // Holding short of runway
@@ -240,10 +291,26 @@ function parseAircraftPosition(positionInfo) {
         
         if (positionLower.includes('final')) {
             // Final approach - coming in from the edge toward the runway
-            x = 75;
-            y = 75;
-            rotation = 225; // Approaching from the southeast
-            approachType = 'Final';
+            // Check if approaching from a specific direction
+            if (positionLower.includes('south')) {
+                // Approaching from the south - position at the bottom edge
+                x = 50;
+                y = 85; // Position near the bottom edge
+                rotation = 180; // Approaching from the south (facing north)
+                approachType = 'Final from South';
+            } else if (positionLower.includes('north')) {
+                // Approaching from the north - position at the top edge
+                x = 50;
+                y = 15; // Position near the top edge
+                rotation = 0; // Approaching from the north (facing south)
+                approachType = 'Final from North';
+            } else {
+                // Default final approach (from southeast)
+                x = 75;
+                y = 75;
+                rotation = 225; // Approaching from the southeast
+                approachType = 'Final';
+            }
         } else if (positionLower.includes('downwind')) {
             // Downwind - parallel to the runway in the opposite direction
             x = 25;
@@ -283,9 +350,15 @@ function parseAircraftPosition(positionInfo) {
         
         switch (direction) {
             case 'north':
-                x = 50; y = 10 + (1 - distanceFactor) * 40; rotation = 180; break;
+                x = 50; 
+                y = 15; // Position closer to the top edge (was 10 + (1 - distanceFactor) * 40)
+                rotation = 180; 
+                break;
             case 'south':
-                x = 50; y = 90 - (1 - distanceFactor) * 40; rotation = 0; break;
+                x = 50; 
+                y = 85; // Position closer to the bottom edge (was 90 - (1 - distanceFactor) * 40)
+                rotation = 0; 
+                break;
             case 'east':
                 x = 90 - (1 - distanceFactor) * 40; y = 50; rotation = 270; break;
             case 'west':
