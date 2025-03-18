@@ -95,11 +95,11 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                 `<!-- Secondary runway (towered) -->
                 <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(90deg); background-color:${runwayColor}; width:70%; height:10px;"></div>` : ''}
                 
-                <!-- Taxiway - positioned in bottom right quadrant -->
-                <div style="position:absolute; bottom:30%; right:30%; width:30%; height:5px; background-color:${taxiwayColor};"></div>
+                <!-- Adjusted horizontal taxiway - starts at left edge and extends just past right-most runway -->
+                <div style="position:absolute; top:70%; left:20%; width:65%; height:5px; background-color:${taxiwayColor}; z-index:2;"></div>
                 
-                <!-- Ramp/Terminal area - positioned at the end of the taxiway, away from runways -->
-                <div style="position:absolute; bottom:30%; right:15%; width:15%; height:15%; background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; border-radius:3px;"></div>
+                <!-- Ramp area on the left side of the diagram, on top of the taxiway -->
+                <div style="position:absolute; top:70%; left:20%; width:15%; height:15%; background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; border-radius:3px; z-index:1;"></div>
             </div>
     `;
     
@@ -155,9 +155,9 @@ function parseAircraftPosition(positionInfo) {
         positionLower.includes('parked')) {
         result = {
             valid: true,
-            x: 85, // Right side where the ramp is now
+            x: 20, // Left side where the ramp is now
             y: 70, // Bottom area where the ramp is positioned
-            rotation: 0,
+            rotation: 90, // Facing the taxiway (east)
             label: 'At ' + positionInfo.split(',')[0]
         };
     }
@@ -174,29 +174,29 @@ function parseAircraftPosition(positionInfo) {
         if (runway) {
             const runwayNum = parseInt(runway, 10);
             if (runwayNum <= 9) {  // Runways 1-9
-                x = 35;
+                x = 30;
                 y = 50;
                 rotation = 90;  // Facing east
             } else if (runwayNum <= 18) {  // Runways 10-18
-                // For runway 14, position at the edge of the vertical runway
+                // For runway 14, position at the intersection of taxiway and vertical runway
                 if (runwayNum === 14) {
-                    x = 42;
-                    y = 35;
-                    rotation = 180;  // Facing south
+                    x = 50;
+                    y = 70;
+                    rotation = 0;  // Facing north
                 } else {
-                    x = 60;
+                    x = 50;
                     y = 35;
                     rotation = 180;  // Facing south
                 }
             } else if (runwayNum <= 27) {  // Runways 19-27
-                x = 65;
+                x = 70;
                 y = 50;
                 rotation = 270;  // Facing west
             } else {  // Runways 28-36
-                // For runway 32, position at the edge of the diagonal runway
+                // For runway 32, position at the intersection of taxiway and diagonal runway
                 if (runwayNum === 32) {
-                    x = 58;
-                    y = 65;
+                    x = 60;
+                    y = 70;
                     rotation = 45;  // Facing northeast
                 } else {
                     x = 50;
@@ -219,11 +219,14 @@ function parseAircraftPosition(positionInfo) {
         let taxiwayMatch = positionLower.match(/taxiway\s+([a-z])/i);
         let taxiway = taxiwayMatch ? taxiwayMatch[1].toUpperCase() : '';
         
+        // Position somewhere along the horizontal taxiway
+        const x = 40 + Math.random() * 40; // Random position along the taxiway
+        
         result = {
             valid: true,
-            x: 70, // Center of the taxiway
-            y: 70, // Bottom area where the taxiway is positioned
-            rotation: 0, // Aligned with the taxiway
+            x,
+            y: 70, // At the height of the horizontal taxiway
+            rotation: 90, // Facing along the taxiway (east)
             label: `On Taxiway ${taxiway}`
         };
     }
@@ -237,20 +240,20 @@ function parseAircraftPosition(positionInfo) {
         
         if (positionLower.includes('final')) {
             // Final approach - coming in from the edge toward the runway
-            x = 80;
-            y = 65;
-            rotation = 225; // Approaching from the right
+            x = 75;
+            y = 75;
+            rotation = 225; // Approaching from the southeast
             approachType = 'Final';
         } else if (positionLower.includes('downwind')) {
             // Downwind - parallel to the runway in the opposite direction
-            x = 20;
-            y = 35;
+            x = 25;
+            y = 25;
             rotation = 45; // Parallel to runway, opposite direction
             approachType = 'Downwind';
         } else if (positionLower.includes('base')) {
             // Base - perpendicular to the runway, transitioning from downwind to final
             x = 25;
-            y = 65;
+            y = 75;
             rotation = 135; // Perpendicular to runway
             approachType = 'Base';
         }
