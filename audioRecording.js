@@ -171,10 +171,31 @@ class AudioRecorder {
             
             // Find the first supported MIME type
             let mimeType = '';
-            for (const type of mimeTypes) {
-                if (MediaRecorder.isTypeSupported(type)) {
-                    mimeType = type;
-                    break;
+            
+            // Special handling for Safari
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            if (isSafari) {
+                // Safari works best with these formats for OpenAI compatibility
+                if (MediaRecorder.isTypeSupported('audio/mp3')) {
+                    mimeType = 'audio/mp3';
+                } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+                    mimeType = 'audio/wav';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+                    mimeType = 'audio/aac'; // Safari often supports AAC
+                }
+                // If we still don't have a supported type, try the default
+                if (!mimeType) {
+                    console.log('No supported MIME types found for Safari, using default');
+                }
+            } else {
+                // For other browsers, use the standard approach
+                for (const type of mimeTypes) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        mimeType = type;
+                        break;
+                    }
                 }
             }
             
@@ -202,9 +223,17 @@ class AudioRecorder {
                 this.isRecording = false;
                 this.updateRecordingUI(false);
                 
-                // Create audio blob and URL
-                // We don't specify the type here to ensure it matches the recorded format
-                this.audioBlob = new Blob(this.audioChunks);
+                // Create audio blob with explicit type for better compatibility
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                let blobOptions = {};
+                
+                // For Safari, explicitly set the MIME type to ensure compatibility with OpenAI
+                if (isSafari) {
+                    blobOptions = { type: 'audio/mp3' }; // OpenAI supports mp3
+                }
+                
+                this.audioBlob = new Blob(this.audioChunks, blobOptions);
+                
                 this.audioURL = URL.createObjectURL(this.audioBlob);
                 
                 // Hide recording indicator
@@ -340,6 +369,51 @@ class AudioRecorder {
             });
     }
     
+    // Helper method to ensure audio blob is in a format supported by OpenAI
+    ensureSupportedAudioFormat(audioBlob) {
+        // Check if we're on Safari
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        
+        // If we're not on Safari or the format is already supported, return as is
+        if (!isSafari || (audioBlob.type && window.isOpenAISupportedFormat(audioBlob.type))) {
+            return {
+                blob: audioBlob,
+                extension: this.getFileExtensionFromMimeType(audioBlob.type)
+            };
+        }
+        
+        // For Safari, convert to MP3 which is well-supported by OpenAI
+        const convertedBlob = new Blob([audioBlob], { type: 'audio/mp3' });
+        
+        return {
+            blob: convertedBlob,
+            extension: 'mp3'
+        };
+    }
+    
+    // Helper to get file extension from MIME type
+    getFileExtensionFromMimeType(mimeType) {
+        if (!mimeType) return 'mp3'; // Default to mp3
+        
+        const type = mimeType.toLowerCase();
+        
+        if (type.includes('mp3') || type.includes('mpeg')) {
+            return 'mp3';
+        } else if (type.includes('wav')) {
+            return 'wav';
+        } else if (type.includes('m4a') || type.includes('mp4')) {
+            return 'm4a';
+        } else if (type.includes('webm')) {
+            return 'webm';
+        } else if (type.includes('flac')) {
+            return 'flac';
+        } else if (type.includes('ogg')) {
+            return 'ogg';
+        }
+        
+        return 'mp3'; // Default to mp3 for unknown types
+    }
+    
     // Transcribe audio using OpenAI's Speech-to-Text API
     async transcribeAudio(audioBlob) {
         try {
@@ -357,25 +431,15 @@ class AudioRecorder {
                 return;
             }
             
-            // Determine file extension based on the MIME type
-            let fileExtension = 'webm';
-            if (audioBlob.type) {
-                const mimeType = audioBlob.type.toLowerCase();
-                if (mimeType.includes('mp3') || mimeType.includes('mpeg')) {
-                    fileExtension = 'mp3';
-                } else if (mimeType.includes('wav')) {
-                    fileExtension = 'wav';
-                } else if (mimeType.includes('m4a')) {
-                    fileExtension = 'm4a';
-                }
-            }
+            // Ensure we have a supported audio format (especially important for Safari)
+            const { blob: processedBlob, extension: fileExtension } = this.ensureSupportedAudioFormat(audioBlob);
             
             // Create unique filename for the audio file
             const fileName = window.generateFileName('aviation-radio', fileExtension);
             
             // Create FormData for OpenAI API
             const formData = new FormData();
-            formData.append('file', audioBlob, fileName);
+            formData.append('file', processedBlob, fileName);
             formData.append('model', 'whisper-1');
             formData.append('language', 'en');
             formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology');

@@ -106,6 +106,40 @@ window.showMicrophonePermissionModal = function() {
     permissionModal.classList.remove('hidden');
 };
 
+// Helper function to check if a file format is supported by OpenAI's Speech-to-Text API
+window.isOpenAISupportedFormat = function(mimeType) {
+    if (!mimeType) return false;
+    
+    // List of supported formats by OpenAI's Whisper API (as of March 2025)
+    const supportedFormats = [
+        'audio/flac', 
+        'audio/m4a', 
+        'audio/mp3', 
+        'audio/mp4', 
+        'audio/mpeg', 
+        'audio/mpga', 
+        'audio/oga', 
+        'audio/ogg', 
+        'audio/wav', 
+        'audio/webm'
+    ];
+    
+    // Check if the mime type is directly supported
+    if (supportedFormats.includes(mimeType.toLowerCase())) {
+        return true;
+    }
+    
+    // Check for partial matches (e.g., 'audio/x-m4a' should match 'audio/m4a')
+    for (const format of supportedFormats) {
+        const formatBase = format.split('/')[1];
+        if (mimeType.toLowerCase().includes(formatBase)) {
+            return true;
+        }
+    }
+    
+    return false;
+};
+
 // Initialize dark mode functionality
 window.initializeDarkMode = function() {
     // Check for dark mode preference
