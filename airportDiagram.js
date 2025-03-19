@@ -49,8 +49,8 @@ const airportLocations = {
         downwind: createPosition(30, 50, 180),   // Left downwind - parallel to runway, opposite direction, offset to the left
         base: createPosition(32, 85, 90),      // Perpendicular to downwind, turning to final
         final: createPosition(35, 85, 0),    // Aligned with runway for landing
-        crosswind: createPosition(32, 15, 270), // Perpendicular to upwind
-        upwind: createPosition(35, 15, 0)    // Parallel to runway, same heading 
+        crosswind: createPosition(32, 15, 270), // Perpendicular to departure leg
+        departure: createPosition(35, 15, 0)    // Parallel to runway, same heading (formerly "upwind")
     },
     
     // Random positions away from the airport
@@ -373,6 +373,18 @@ function parseAircraftPosition(positionInfo) {
                 true // near airport 
             );
         }
+    }
+    
+    // Check if aircraft has departed - place in departure position
+    if (pos.includes('departed')) {
+        // Position the aircraft in the departure position, aligned with the runway and heading away from the airport
+        const departurePosition = airportLocations.pattern.departure;
+        return createPositionResult(
+            departurePosition.x,
+            departurePosition.y,
+            explicitRotation !== null ? explicitRotation : departurePosition.rotation,
+            true // near airport
+        );
     }
     
     // Check for runway position last as many above include the word 'runway'
