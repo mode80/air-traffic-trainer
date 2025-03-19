@@ -46,11 +46,17 @@ const airportLocations = {
     
     // Pattern positions
     pattern: {
+        // Left traffic pattern (default)
         downwind: createPosition(30, 50, 180),   // Left downwind - parallel to runway, opposite direction, offset to the left
         base: createPosition(32, 85, 90),      // Perpendicular to downwind, turning to final
         final: createPosition(35, 85, 0),    // Aligned with runway for landing
         crosswind: createPosition(32, 15, 270), // Perpendicular to departure leg
-        departure: createPosition(35, 15, 0)    // Parallel to runway, same heading (formerly "upwind")
+        departure: createPosition(35, 15, 0),    // Parallel to runway, same heading (formerly "upwind")
+        
+        // Right traffic pattern
+        rightDownwind: createPosition(70, 50, 0),   // Right downwind - parallel to runway, opposite direction, offset to the right
+        rightBase: createPosition(38, 85, 270),      // Perpendicular to downwind, turning to final
+        rightCrosswind: createPosition(38, 15, 90)  // Perpendicular to departure leg
     },
     
     // Random positions away from the airport
@@ -375,6 +381,33 @@ function parseAircraftPosition(positionInfo) {
         }
     }
     
+    // Special case for "right" pattern positions that don't match the object keys directly
+    if (pos.includes('right downwind')) {
+        const position = airportLocations.pattern.rightDownwind;
+        return createPositionResult(
+            position.x,
+            position.y,
+            explicitRotation !== null ? explicitRotation : position.rotation,
+            true // near airport
+        );
+    } else if (pos.includes('right base')) {
+        const position = airportLocations.pattern.rightBase;
+        return createPositionResult(
+            position.x,
+            position.y,
+            explicitRotation !== null ? explicitRotation : position.rotation,
+            true // near airport
+        );
+    } else if (pos.includes('right crosswind')) {
+        const position = airportLocations.pattern.rightCrosswind;
+        return createPositionResult(
+            position.x,
+            position.y,
+            explicitRotation !== null ? explicitRotation : position.rotation,
+            true // near airport
+        );
+    }
+    
     // Special case for "final approach" - use the pattern.final position
     if (pos.includes('final approach')) {
         const finalPosition = airportLocations.pattern.final;
@@ -629,32 +662,32 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
                     ${runwaySuffix === 'L' || runwaySuffix === 'R' ? `
                     <!-- Parallel runways for L/R runways -->
-                    <!-- Left runway -->
-                    <rect x="42.5" y="20" width="5" height="60" fill="${runwayColor}" />
-                    <!-- Right runway -->
-                    <rect x="52.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- First runway (standard position) -->
+                    <rect x="47.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- Second runway (on the other side) -->
+                    <rect x="57.5" y="20" width="5" height="60" fill="${runwayColor}" />
                     
-                    <!-- Left runway labels -->
-                    <g transform="translate(45, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- First runway labels -->
+                    <g transform="translate(50, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${activeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
+                            ${activeRunway}${runwaySuffix}
                         </text>
                     </g>
-                    <g transform="translate(45, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(50, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${oppositeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
+                            ${oppositeRunway}${oppositeSuffix}
                         </text>
                     </g>
                     
-                    <!-- Right runway labels -->
-                    <g transform="translate(55, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- Second runway labels -->
+                    <g transform="translate(60, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${activeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
+                            ${activeRunway}${oppositeSuffix}
                         </text>
                     </g>
-                    <g transform="translate(55, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(60, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${oppositeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
+                            ${oppositeRunway}${runwaySuffix}
                         </text>
                     </g>
                     ` : `
