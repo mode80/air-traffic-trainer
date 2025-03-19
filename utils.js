@@ -72,6 +72,7 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
     const bgColor = isDarkMode ? '#262626' : '#F0F0F0';
     const runwayColor = isDarkMode ? '#505050' : '#333333';
     const taxiwayColor = isDarkMode ? '#364968' : '#6B8CCF';
+    const rampColor = isDarkMode ? '#404040' : '#B0B0B0';
     const textColor = isDarkMode ? '#E0E0E0' : '#333333';
     const aircraftColor = isDarkMode ? '#E0E0E0' : '#D32F2F';
     
@@ -177,7 +178,59 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
         }
     }
     
-    // Create a square container with proper padding
+    // Define key locations in the airport for positioning
+    // The airport elements will be centered in the middle 60% of the SVG (20% margin on top and bottom)
+    // For a 100x100 viewBox, this means coordinates from 20 to 80 vertically
+    const airportLocations = {
+        runway: { x: 50, y: 50 },
+        taxiway: { x: 50, y: 62 },
+        ramp: { x: 42, y: 68 },
+        holdingShort: { x: 50, y: 58 },
+        approaching: {
+            north: { x: 50, y: 10, rotation: 0 },
+            south: { x: 50, y: 90, rotation: 180 },
+            east: { x: 90, y: 50, rotation: 270 },
+            west: { x: 10, y: 50, rotation: 90 }
+        },
+        departing: {
+            north: { x: 50, y: 20, rotation: 0 },
+            south: { x: 50, y: 80, rotation: 180 },
+            east: { x: 80, y: 50, rotation: 90 },
+            west: { x: 20, y: 50, rotation: 270 }
+        },
+        pattern: {
+            downwind: { x: 65, y: 35, rotation: 225 },
+            base: { x: 65, y: 65, rotation: 315 },
+            final: { x: 35, y: 65, rotation: 45 },
+            crosswind: { x: 35, y: 35, rotation: 135 },
+            upwind: { x: 35, y: 50, rotation: 45 }
+        },
+        away: [
+            { x: 25, y: 25, rotation: 135 },
+            { x: 75, y: 25, rotation: 225 },
+            { x: 75, y: 75, rotation: 315 },
+            { x: 25, y: 75, rotation: 45 }
+        ]
+    };
+    
+    // Update the flight information panel with the aircraft position
+    if (aircraftPosition.valid && aircraftPosition.label) {
+        // Find the position-info element in the Flight Information panel
+        const positionInfo = document.getElementById('position-info');
+        if (positionInfo) {
+            // Update the position text
+            positionInfo.textContent = aircraftPosition.label;
+            positionInfo.style.display = 'block';
+            
+            // Make sure the position container is visible
+            const positionContainer = document.getElementById('position-container');
+            if (positionContainer) {
+                positionContainer.style.display = 'block';
+            }
+        }
+    }
+    
+    // Create a container with proper padding
     let diagramHTML = `
         <div style="width:100%; height:100%; background-color:${bgColor}; position:relative; border-radius:0.5rem; overflow:hidden;">
             <!-- North indicator -->
@@ -185,110 +238,56 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                 N
             </div>
             
-            <!-- Position caption at the top of the diagram -->
-            ${aircraftPosition.valid ? 
-            `<div style="position:absolute; top:15px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:5px 12px; border-radius:4px; font-size:12px; white-space:nowrap; z-index:1000; pointer-events:none; text-align:center;">
-                ${aircraftPosition.label || 'Aircraft Position'}
-            </div>` : ''}
-            
-            <!-- Create a square container with padding -->
-            <div id="airport-container" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:70%; height:70%; max-width:70%; max-height:70%;">
-                <!-- Airport elements group that will be rotated together -->
-                <div id="airport-elements" style="position:relative; width:100%; height:100%; transform:rotate(${airportRotation}deg);">
-                    <!-- Primary runway (main runway) -->
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(45deg); background-color:${runwayColor}; width:80%; height:16px;">
-                        <!-- Runway heading labels with counter-rotation to keep them upright -->
-                        <div style="position:absolute; top:50%; left:0; transform:translate(-120%, -50%) rotate(${-(airportRotation + 45)}deg); color:${textColor}; font-size:10px; font-weight:bold; text-align:center;">
-                            ${activeRunway ? activeRunway + (runwaySuffix ? runwaySuffix : '') : '33'}
-                        </div>
-                        <div style="position:absolute; top:50%; right:0; transform:translate(120%, -50%) rotate(${-(airportRotation + 45)}deg); color:${textColor}; font-size:10px; font-weight:bold; text-align:center;">
-                            ${oppositeRunway ? oppositeRunway + (oppositeSuffix ? oppositeSuffix : '') : '15'}
-                        </div>
-                    </div>
+            <!-- SVG container for the entire diagram -->
+            <svg id="airport-svg" width="100%" height="100%" viewBox="0 0 100 100" style="position:absolute; top:0; left:0; width:100%; height:100%;">
+                <!-- Rotatable airport elements group - occupying the middle 60% of the SVG -->
+                <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
+                    <!-- Primary runway (main runway) - sized to occupy approximately 60% of vertical space, but thinner -->
+                    <rect x="20" y="47.5" width="60" height="5" transform="rotate(45, 50, 50)" fill="${runwayColor}" />
                     
                     ${isTowered ? 
                     `<!-- Secondary runway (towered) - perpendicular to the main runway -->
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background-color:${runwayColor}; width:70%; height:12px;">
-                        <!-- No labels for secondary runway -->
-                    </div>` : ''}
+                    <rect x="30" y="48" width="40" height="4" fill="${runwayColor}" />` : ''}
                     
                     <!-- Taxiway positioned to intersect with the main runway -->
-                    <!-- Taxiway is horizontal before rotation -->
-                    <div style="position:absolute; top:67%; left:20%; width:90%; height:8px; background-color:${taxiwayColor}; transform:rotate(-45deg); z-index:2;"></div>
+                    <rect x="20" y="60" width="60" height="4" transform="rotate(-45, 50, 50)" fill="${taxiwayColor}" />
                     
                     <!-- Ramp area on the left side of the taxiway -->
-                    <div style="position:absolute; top:75%; left:33%; transform:rotate(-45deg); width:15%; height:15%; background-color:${isDarkMode ? '#888888' : '#BBBBBB'}; border-radius:3px; z-index:1;"></div>
-                </div>
-            </div>
+                    <rect x="35" y="65" width="14" height="8" transform="rotate(-45, 42, 68)" fill="${rampColor}" rx="1" ry="1" />
+                    
+                    <!-- Runway heading labels with counter-rotation to keep them upright -->
+                    <g transform="rotate(-${airportRotation}, 30, 30)">
+                        <text x="30" y="30" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
+                            ${activeRunway || '33'}${runwaySuffix}
+                        </text>
+                    </g>
+                    
+                    <g transform="rotate(-${airportRotation}, 70, 70)">
+                        <text x="70" y="70" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
+                            ${oppositeRunway || '15'}${oppositeSuffix}
+                        </text>
+                    </g>
+                    
+                    <!-- Aircraft on ground or in pattern (part of the rotatable airport) -->
+                    ${aircraftPosition.valid && aircraftPosition.isOnGround ? `
+                    <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation - airportRotation})">
+                        <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                    </g>
+                    ` : ''}
+                </g>
+                
+                <!-- Aircraft approaching or departing (outside the rotatable airport) -->
+                ${aircraftPosition.valid && !aircraftPosition.isOnGround ? `
+                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
+                    <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                </g>
+                ` : ''}
+            </svg>
+        </div>
     `;
     
-    // Add aircraft icon
-    if (aircraftPosition.valid) {
-        // Position the aircraft based on the parsed location
-        const { x, y, rotation, isOnGround } = aircraftPosition;
-        
-        // Determine if aircraft should be part of the airport rotation
-        // Aircraft should be in the rotatable group if:
-        // 1. It's on the ground (runway, taxiway, ramp), or
-        // 2. It's in the pattern (downwind, base, final, upwind, crosswind)
-        const inPattern = aircraftPosition.label && 
-                         (aircraftPosition.label.toLowerCase().includes('downwind') || 
-                          aircraftPosition.label.toLowerCase().includes('base') || 
-                          aircraftPosition.label.toLowerCase().includes('final') || 
-                          aircraftPosition.label.toLowerCase().includes('upwind') || 
-                          aircraftPosition.label.toLowerCase().includes('crosswind'));
-        
-        const shouldRotateWithAirport = isOnGround || inPattern;
-        
-        if (shouldRotateWithAirport) {
-            // For aircraft on the ground or in the pattern, add to the airport-elements group
-            diagramHTML = diagramHTML.replace('</div>\n            </div>', `
-                <!-- Aircraft icon (rotates with airport) -->
-                <div style="position:absolute; top:${y}%; left:${x}%; transform:translate(-50%, -50%); z-index:500;">
-                    <div style="transform:rotate(${rotation - airportRotation}deg);">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="${aircraftColor}" style="filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));">
-                            <polygon points="12,0 0,24 24,24" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            </div>`);
-        } else {
-            // For aircraft on approach or in transit, add outside the airport-elements group
-            // These aircraft don't rotate with the airport
-            diagramHTML += `
-                <!-- Aircraft icon (fixed position) -->
-                <div style="position:absolute; top:${y}%; left:${x}%; transform:translate(-50%, -50%); z-index:500;">
-                    <div style="transform:rotate(${rotation}deg);">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="${aircraftColor}" style="filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));">
-                            <polygon points="12,0 0,24 24,24" />
-                        </svg>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    // Close the container div
-    diagramHTML += `</div>`;
-    
+    // Set the HTML content of the container
     container.innerHTML = diagramHTML;
-    
-    // Ensure the airport container is square after rendering
-    const airportContainer = container.querySelector('#airport-container');
-    if (airportContainer) {
-        // Get the smaller dimension (width or height) of the parent container
-        const parentWidth = container.clientWidth;
-        const parentHeight = container.clientHeight;
-        const smallerDimension = Math.min(parentWidth, parentHeight);
-        
-        // Set the airport container to 70% of the smaller dimension to maintain square aspect ratio
-        const containerSize = smallerDimension * 0.7;
-        airportContainer.style.width = containerSize + 'px';
-        airportContainer.style.height = containerSize + 'px';
-    }
-    
-    return container;
 };
 
 /**
@@ -297,452 +296,276 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
  * @returns {object} - Position data for rendering on the diagram
  */
 function parseAircraftPosition(positionInfo) {
+    // Default result (invalid position)
+    let result = {
+        valid: false,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        label: '',
+        isOnGround: false
+    };
+    
+    // If no position info provided, return invalid result
     if (!positionInfo) {
-        return { valid: false };
+        return result;
     }
     
-    // Default position (invalid)
-    let result = { valid: false };
-    
-    // Convert to lowercase for easier matching
+    // Convert to lowercase for case-insensitive matching
     const positionLower = positionInfo.toLowerCase();
     
-    // Determine direction from position info
+    // Check for direction information
     let directionRotation = null;
-    if (positionLower.includes('northbound')) {
-        directionRotation = 0; // Facing north
-    } else if (positionLower.includes('southbound')) {
-        directionRotation = 180; // Facing south
-    } else if (positionLower.includes('eastbound')) {
-        directionRotation = 90; // Facing east
-    } else if (positionLower.includes('westbound')) {
-        directionRotation = 270; // Facing west
-    } else if (positionLower.includes('northeast bound')) {
-        directionRotation = 45; // Facing northeast
-    } else if (positionLower.includes('northwest bound')) {
-        directionRotation = 315; // Facing northwest
-    } else if (positionLower.includes('southeast bound')) {
-        directionRotation = 135; // Facing southeast
-    } else if (positionLower.includes('southwest bound')) {
-        directionRotation = 225; // Facing southwest
+    
+    // Check for specific direction keywords and set rotation accordingly
+    if (positionLower.includes('facing north') || positionLower.includes('heading north')) {
+        directionRotation = 0; // North = 0 degrees
+    } else if (positionLower.includes('facing east') || positionLower.includes('heading east')) {
+        directionRotation = 90; // East = 90 degrees
+    } else if (positionLower.includes('facing south') || positionLower.includes('heading south')) {
+        directionRotation = 180; // South = 180 degrees
+    } else if (positionLower.includes('facing west') || positionLower.includes('heading west')) {
+        directionRotation = 270; // West = 270 degrees
+    } else if (positionLower.includes('facing northeast') || positionLower.includes('heading northeast')) {
+        directionRotation = 45; // Northeast = 45 degrees
+    } else if (positionLower.includes('facing southeast') || positionLower.includes('heading southeast')) {
+        directionRotation = 135; // Southeast = 135 degrees
+    } else if (positionLower.includes('facing southwest') || positionLower.includes('heading southwest')) {
+        directionRotation = 225; // Southwest = 225 degrees
+    } else if (positionLower.includes('facing northwest') || positionLower.includes('heading northwest')) {
+        directionRotation = 315; // Northwest = 315 degrees
     }
     
-    // Check for common position patterns
+    // Define key locations in the airport for positioning
+    const airportLocations = {
+        runway: { x: 50, y: 50 },
+        taxiway: { x: 50, y: 62 },
+        ramp: { x: 42, y: 68 },
+        holdingShort: { x: 50, y: 58 },
+        approaching: {
+            north: { x: 50, y: 10, rotation: 0 },
+            south: { x: 50, y: 90, rotation: 180 },
+            east: { x: 90, y: 50, rotation: 270 },
+            west: { x: 10, y: 50, rotation: 90 }
+        },
+        departing: {
+            north: { x: 50, y: 20, rotation: 0 },
+            south: { x: 50, y: 80, rotation: 180 },
+            east: { x: 80, y: 50, rotation: 90 },
+            west: { x: 20, y: 50, rotation: 270 }
+        },
+        pattern: {
+            downwind: { x: 65, y: 35, rotation: 225 },
+            base: { x: 65, y: 65, rotation: 315 },
+            final: { x: 35, y: 65, rotation: 45 },
+            crosswind: { x: 35, y: 35, rotation: 135 },
+            upwind: { x: 35, y: 50, rotation: 45 }
+        },
+        away: [
+            { x: 25, y: 25, rotation: 135 },
+            { x: 75, y: 25, rotation: 225 },
+            { x: 75, y: 75, rotation: 315 },
+            { x: 25, y: 75, rotation: 45 }
+        ]
+    };
     
-    // On the ground at a specific location (ramp, terminal, etc.)
-    if (positionLower.includes('ramp') || 
-        positionLower.includes('terminal') || 
-        positionLower.includes('fbo') || 
-        positionLower.includes('parked') ||
-        positionLower.includes('general aviation') ||
-        positionLower.includes('parking')) {
+    // Extract runway number if mentioned
+    const runwayMatch = positionLower.match(/runway\s+(\d+[LRC]?)/i) || positionLower.match(/\brwy\s+(\d+[LRC]?)/i);
+    let runway = runwayMatch ? runwayMatch[1] : '';
+    
+    // Extract altitude if available
+    let altitude = '';
+    const altMatch = positionLower.match(/at\s+(\d+,?\d*)\s*feet/i);
+    if (altMatch) {
+        altitude = `, ${altMatch[1].replace(',', '')} ft`;
+    }
+    
+    // Check for "on the ramp" or "at the ramp" position
+    if (positionLower.includes('on the ramp') || positionLower.includes('at the ramp')) {
+        const positionDescription = positionLower.includes('on the ramp') ? 'On the ramp' : 'At the ramp';
         
-        // Extract the position description without adding redundant "At"
-        let positionDescription = positionInfo.split(',')[0];
-        
-        // If the position already starts with "At", "On", "In", "Parked", etc., don't add another prefix
-        if (positionDescription.match(/^(At|On|In|Parked|Holding|Taxiing)/i)) {
-            // Use the description as is
-            positionDescription = positionDescription.trim();
-        } else {
-            // Add "At" prefix only if needed
-            positionDescription = 'At ' + positionDescription;
-        }
-        
-        // Position on the ramp area
         result = {
             valid: true,
-            x: 41, // Center of the ramp area
-            y: 82, // Center of the ramp area
-            rotation: directionRotation !== null ? directionRotation : 45, // Use direction rotation if available
+            x: airportLocations.ramp.x,
+            y: airportLocations.ramp.y,
+            rotation: directionRotation !== null ? directionRotation : 45,
             label: positionDescription,
-            isOnGround: true // Aircraft is on the ground
+            isOnGround: true
         };
     }
-    // Holding short of runway
+    // Check for "holding short" position
     else if (positionLower.includes('holding short')) {
-        // Extract runway number if available
-        let runwayMatch = positionLower.match(/runway\s+(\d+)/i);
-        let runway = runwayMatch ? runwayMatch[1] : '';
+        result = {
+            valid: true,
+            x: airportLocations.holdingShort.x,
+            y: airportLocations.holdingShort.y,
+            rotation: directionRotation !== null ? directionRotation : -45,
+            label: runway ? `Holding short RWY ${runway}` : 'Holding short',
+            isOnGround: true
+        };
+    }
+    // Check for taxiway position
+    else if (positionLower.includes('taxiway') || positionLower.includes('taxi')) {
+        result = {
+            valid: true,
+            x: airportLocations.taxiway.x,
+            y: airportLocations.taxiway.y,
+            rotation: directionRotation !== null ? directionRotation : -45,
+            label: 'On taxiway',
+            isOnGround: true
+        };
+    }
+    // Check for runway position
+    else if (positionLower.includes('runway') || positionLower.match(/\brwy\b/i)) {
+        // Determine if the aircraft is taking off, landing, or just on the runway
+        let rotation = 45; // Default rotation for the main runway
         
-        // Position the aircraft on the taxiway
-        let y = 73; // Taxiway's y-coordinate 
-        
-        // Calculate the center of the taxiway and offset leftward by one plane width
-        // The taxiway starts at left:20% and has width:90%
-        // So the center is at 20% + (90% / 2) = 65%
-        // Offset leftward by approximately 5% (one plane width)
-        let x = 60; // Center of the taxiway (65%) offset leftward by 5%
-        
-        // Set rotation to face the runway (90 degrees clockwise from the taxiway orientation)
-        // The taxiway is rotated -45 degrees, so to face the runway:
-        // -45 + 90 = 45 degrees
-        let rotation = -45; // with -45 degrees rotation of taxiway 
+        if (positionLower.includes('taking off') || positionLower.includes('takeoff')) {
+            rotation = 45; // Aircraft is aligned with the runway for takeoff
+        } else if (positionLower.includes('landing') || positionLower.includes('on approach')) {
+            rotation = 225; // Aircraft is aligned with the runway for landing (opposite direction)
+        }
         
         result = {
             valid: true,
-            x,
-            y,
+            x: airportLocations.runway.x,
+            y: airportLocations.runway.y,
             rotation: directionRotation !== null ? directionRotation : rotation,
-            label: `Holding short RWY ${runway}`,
-            isOnGround: true // Aircraft is on the ground
-        };
-    }
-    // On a specific taxiway
-    else if (positionLower.includes('taxiway') || positionLower.match(/taxiway\s+[a-z]/i)) {
-        let taxiwayMatch = positionLower.match(/taxiway\s+([a-z])/i);
-        let taxiway = taxiwayMatch ? taxiwayMatch[1].toUpperCase() : '';
-        
-        // Position somewhere along the horizontal taxiway
-        const x = 20 + Math.random() * 40; // Random position along the taxiway
-        
-        result = {
-            valid: true,
-            x,
-            y: 73, // At the height of the horizontal taxiway
-            rotation: directionRotation !== null ? directionRotation : 90, 
-            label: `On Taxiway ${taxiway}`,
-            isOnGround: true // Aircraft is on the ground
-        };
-    }
-    // On final approach or on a specific leg of the pattern
-    else if (positionLower.includes('final') || 
-             positionLower.includes('downwind') || 
-             positionLower.includes('base') ||
-             positionLower.includes('upwind') ||
-             positionLower.includes('crosswind')) {
-        
-        let x = 50, y = 50, rotation = 0;
-        let approachType = '';
-        
-        // Calculate positions relative to the diagonal runway (which is our primary runway)
-        // The runway is oriented at 45 degrees (NE/SW) before any rotation
-        
-        // Determine if it's a left or right pattern
-        const isRightPattern = positionLower.includes('right');
-        const isLeftPattern = positionLower.includes('left') || (!isRightPattern && !positionLower.includes('straight'));
-        
-        // Aircraft width as percentage of diagram for offset calculations
-        const aircraftWidth = 5; // Approximately 5% of the container width
-        
-        if (positionLower.includes('final')) {
-            // Check if approaching from a specific direction
-            if (positionLower.includes('south')) {
-                // Approaching from the south - position at the bottom edge
-                x = 35; // Approach from southwest (for the diagonal runway)
-                y = 85; // Position near the bottom edge
-                rotation = 225; // Approaching from the southwest (for diagonal runway)
-                approachType = 'Final from South';
-            } else if (positionLower.includes('north')) {
-                // Approaching from the north - position at the top edge
-                x = 65; // Approach from northeast (for the diagonal runway)
-                y = 15; // Position near the top edge
-                rotation = 45; // Approaching from the northeast (for diagonal runway)
-                approachType = 'Final from North';
-            } else {
-                // Default final approach (from southeast)
-                x = 65;
-                y = 65;
-                rotation = 225; // Approaching from the southwest for diagonal runway
-                approachType = 'Final';
-            }
-        } else if (positionLower.includes('downwind')) {
-            // Downwind - parallel to the runway in the opposite direction
-            // For a 45-degree runway, the downwind leg should be parallel but offset
-            
-            if (isRightPattern) {
-                // Right downwind - offset to the right of the runway
-                x = 65; // Right side of the runway
-                y = 35; // Parallel to the runway
-                rotation = 225; // Parallel to diagonal runway, opposite direction
-                approachType = 'Right Downwind';
-            } else {
-                // Left downwind (default) - offset to the left of the runway
-                x = 35; // Left side of the runway
-                y = 35; // Parallel to the runway
-                rotation = 225; // Parallel to diagonal runway, opposite direction
-                approachType = isLeftPattern ? 'Left Downwind' : 'Downwind';
-            }
-        } else if (positionLower.includes('base')) {
-            // Base - perpendicular to the runway, transitioning from downwind to final
-            
-            if (isRightPattern) {
-                // Right base - coming from right downwind
-                x = 75; // Right side of the runway
-                y = 55; // Transitioning to final
-                rotation = 315; // Perpendicular to diagonal runway
-                approachType = 'Right Base';
-            } else {
-                // Left base (default) - coming from left downwind
-                x = 25; // Left side of the runway
-                y = 65; // Transitioning to final
-                rotation = 315; // Perpendicular to diagonal runway
-                approachType = isLeftPattern ? 'Left Base' : 'Base';
-            }
-        } else if (positionLower.includes('upwind')) {
-            // Upwind - parallel to the runway in the same direction
-            
-            if (isRightPattern) {
-                // Right upwind - offset to the right of the runway
-                x = 65; // Right side of the runway
-                y = 65; // Parallel to the runway
-                rotation = 45; // Same direction as the diagonal runway
-                approachType = 'Right Upwind';
-            } else {
-                // Left upwind (default) - offset to the left of the runway
-                x = 35; // Left side of the runway
-                y = 65; // Parallel to the runway
-                rotation = 45; // Same direction as the diagonal runway
-                approachType = isLeftPattern ? 'Left Upwind' : 'Upwind';
-            }
-        } else if (positionLower.includes('crosswind')) {
-            // Crosswind - perpendicular to the runway, transitioning from upwind to downwind
-            
-            if (isRightPattern) {
-                // Right crosswind - transitioning to right downwind
-                x = 75; // Right side of the runway
-                y = 45; // Transitioning to downwind
-                rotation = 135; // Perpendicular to diagonal runway
-                approachType = 'Right Crosswind';
-            } else {
-                // Left crosswind (default) - transitioning to left downwind
-                x = 25; // Left side of the runway
-                y = 45; // Transitioning to downwind
-                rotation = 135; // Perpendicular to diagonal runway
-                approachType = isLeftPattern ? 'Left Crosswind' : 'Crosswind';
-            }
-        }
-        
-        result = {
-            valid: true,
-            x,
-            y,
-            rotation: directionRotation !== null ? directionRotation : rotation, 
-            label: approachType,
-            isOnGround: false // Aircraft is in the air (pattern)
-        };
-    }
-    // Exiting or departing airspace in a specific direction
-    else if (positionLower.match(/exiting|departing|leaving|exit|depart|leave/) && 
-             (positionLower.includes('north') || 
-              positionLower.includes('south') || 
-              positionLower.includes('east') || 
-              positionLower.includes('west') ||
-              positionLower.includes('northeast') ||
-              positionLower.includes('northwest') ||
-              positionLower.includes('southeast') ||
-              positionLower.includes('southwest'))) {
-        
-        let x = 50, y = 50, rotation = 0;
-        let directionLabel = '';
-        
-        // Position the aircraft at the edge of the diagram based on direction
-        if (positionLower.includes('north')) {
-            // North edge
-            x = 50;
-            y = 15; // Near the top edge
-            rotation = 180; // Facing north
-            directionLabel = 'North';
-        } else if (positionLower.includes('northeast')) {
-            // Northeast corner
-            x = 85;
-            y = 15;
-            rotation = 45; // Facing northeast
-            directionLabel = 'Northeast';
-        } else if (positionLower.includes('east')) {
-            // East edge
-            x = 85; // Near the right edge
-            y = 50;
-            rotation = 270; // Facing east
-            directionLabel = 'East';
-        } else if (positionLower.includes('southeast')) {
-            // Southeast corner
-            x = 85;
-            y = 85;
-            rotation = 135; // Facing southeast
-            directionLabel = 'Southeast';
-        } else if (positionLower.includes('south')) {
-            // South edge
-            x = 50;
-            y = 85; // Near the bottom edge
-            rotation = 0; // Facing south
-            directionLabel = 'South';
-        } else if (positionLower.includes('southwest')) {
-            // Southwest corner
-            x = 15;
-            y = 85;
-            rotation = 225; // Facing southwest
-            directionLabel = 'Southwest';
-        } else if (positionLower.includes('west')) {
-            // West edge
-            x = 15; // Near the left edge
-            y = 50;
-            rotation = 90; // Facing west
-            directionLabel = 'West';
-        } else if (positionLower.includes('northwest')) {
-            // Northwest corner
-            x = 15;
-            y = 15;
-            rotation = 315; // Facing northwest
-            directionLabel = 'Northwest';
-        }
-        
-        // Extract altitude if available
-        let altitudeText = '';
-        const altMatch = positionLower.match(/at\s+(\d+,?\d*)\s*feet/i);
-        if (altMatch) {
-            altitudeText = `, ${altMatch[1].replace(',', '')} ft`;
-        }
-        
-        result = {
-            valid: true,
-            x,
-            y,
-            rotation: directionRotation !== null ? directionRotation : rotation, 
-            label: `Exiting to ${directionLabel}${altitudeText}`,
-            isOnGround: false // Aircraft is in the air (exiting airspace)
-        };
-    }
-    // Miles from the airport in a specific direction
-    else if (positionLower.match(/(\d+)\s*miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i)) {
-        const matches = positionLower.match(/(\d+)\s*miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-        const distance = parseInt(matches[1], 10);
-        const direction = matches[2].toLowerCase();
-        
-        // Calculate position based on distance and direction
-        // Use a more aggressive scaling to push distant aircraft further to the edges
-        // A distance of 5 miles or more will be near the edge of the container
-        const distanceFactor = Math.min(distance / 5, 1);
-        
-        // Determine position based on direction and scaled distance
-        let x = 50, y = 50; // Default to center
-        
-        // Calculate aircraft width as a percentage of the container
-        // Aircraft SVG is 14px wide, container is the full diagram width
-        const aircraftWidth = 2; // Approximately 2% of the container width
-        
-        switch (direction) {
-            case 'north':
-                x = 50; 
-                y = 0 + aircraftWidth; // At the top border, moved inward by one aircraft width
-                rotation = 180; 
-                break;
-            case 'south':
-                x = 50; 
-                y = 100 - aircraftWidth; // At the bottom border, moved inward by one aircraft width
-                rotation = 0; 
-                break;
-            case 'east':
-                x = 100 - aircraftWidth; y = 50; rotation = 270; break;
-            case 'west':
-                x = 0 + aircraftWidth; y = 50; rotation = 90; break;
-            case 'northeast':
-                x = 100 - aircraftWidth; y = 0 + aircraftWidth; rotation = 225; break;
-            case 'northwest':
-                x = 0 + aircraftWidth; y = 0 + aircraftWidth; rotation = 135; break;
-            case 'southeast':
-                x = 100 - aircraftWidth; y = 100 - aircraftWidth; rotation = 315; break;
-            case 'southwest':
-                x = 0 + aircraftWidth; y = 100 - aircraftWidth; rotation = 45; break;
-        }
-        
-        // Extract altitude if available
-        let altitude = '';
-        const altMatch = positionLower.match(/at\s+(\d+,?\d*)\s*feet/i);
-        if (altMatch) {
-            altitude = `, ${altMatch[1].replace(',', '')} ft`;
-        }
-        
-        result = {
-            valid: true,
-            x,
-            y,
-            rotation: directionRotation !== null ? directionRotation : rotation, 
-            label: `${distance} mi ${direction}${altitude}`,
-            isOnGround: false // Aircraft is in the air (miles from airport)
-        };
-    }
-    // Just landed or on the runway
-    else if (positionLower.includes('landed') || positionLower.includes('runway')) {
-        let runwayMatch = positionLower.match(/runway\s+(\d+)/i);
-        let runway = runwayMatch ? runwayMatch[1] : '';
-        
-        // Convert runway number to heading (runway 36 = 360 degrees, runway 9 = 90 degrees)
-        let runwayHeading = runway ? parseInt(runway, 10) * 10 : 0;
-        if (runwayHeading === 0) runwayHeading = 360; // Convert runway 0 to 360 degrees
-        
-        // Calculate rotation based on runway heading
-        // We need to convert the heading to a rotation angle (0 degrees is North)
-        let rotation = runwayHeading % 360;
-        
-        // In our airport diagram:
-        // - The main runway is diagonal at 45 degrees (NE/SW) before any rotation
-        // - For runway 33/15, the aircraft should be on this diagonal runway
-        
-        // Position the aircraft on the appropriate runway
-        let x = 50, y = 50; // Default to center of the runway
-        
-        // For the main diagonal runway (33/15 by default)
-        if (runway === '33' || runway === '15') {
-            // On the main diagonal runway
-            if (runway === '33') {
-                rotation = 330; // Northwest heading
-            } else { // runway 15
-                rotation = 150; // Southeast heading
-            }
-        }
-        // For the scenario-specific runway numbers
-        else if (runway === '05' || runway === '23') {
-            // On the main diagonal runway (rotated to match scenario)
-            if (runway === '05') {
-                rotation = 50; // Northeast heading
-            } else { // runway 23
-                rotation = 230; // Southwest heading
-            }
-        } else if (runway === '14' || runway === '32') {
-            // On the main diagonal runway (rotated to match scenario)
-            if (runway === '14') {
-                rotation = 140; // Southeast heading
-            } else { // runway 32
-                rotation = 320; // Northwest heading
-            }
-        } else if (runway === '18' || runway === '36') {
-            // North/South runway (secondary runway in towered airports)
-            if (runway === '18') {
-                rotation = 180; // South heading
-            } else { // runway 36
-                rotation = 0; // North heading
-            }
-        } else if (runway === '09' || runway === '27') {
-            // East/West runway (secondary runway in towered airports)
-            if (runway === '09') {
-                rotation = 90; // East heading
-            } else { // runway 27
-                rotation = 270; // West heading
-            }
-        } else if (runway) {
-            // For any other runway number, calculate the heading
-            rotation = runwayHeading % 360;
-        }
-        
-        result = {
-            valid: true,
-            x: 50, // Center of the runway
-            y: 50,
-            rotation: directionRotation !== null ? directionRotation : rotation, 
             label: runway ? `On RWY ${runway}` : 'On Runway',
-            isOnGround: true // Aircraft is on the ground (runway)
+            isOnGround: true
         };
     }
-    // Default to center of diagram if no pattern matches
-    else {
+    // Check for approaching from a specific direction
+    else if (positionLower.includes('approach') || positionLower.includes('arriving')) {
+        let direction = 'north'; // Default direction
+        let position = airportLocations.approaching.north;
+        
+        if (positionLower.includes('north')) {
+            direction = 'north';
+            position = airportLocations.approaching.north;
+        } else if (positionLower.includes('south')) {
+            direction = 'south';
+            position = airportLocations.approaching.south;
+        } else if (positionLower.includes('east')) {
+            direction = 'east';
+            position = airportLocations.approaching.east;
+        } else if (positionLower.includes('west')) {
+            direction = 'west';
+            position = airportLocations.approaching.west;
+        }
+        
         result = {
             valid: true,
-            x: 50,
-            y: 50,
-            rotation: 0,
+            x: position.x,
+            y: position.y,
+            rotation: directionRotation !== null ? directionRotation : position.rotation,
+            label: `Approaching from ${direction}${runway ? ` RWY ${runway}` : ''}${altitude}`,
+            isOnGround: false
+        };
+    }
+    // Check for departing in a specific direction
+    else if (positionLower.includes('depart') || positionLower.includes('departure')) {
+        let direction = 'north'; // Default direction
+        let position = airportLocations.departing.north;
+        
+        if (positionLower.includes('north')) {
+            direction = 'north';
+            position = airportLocations.departing.north;
+        } else if (positionLower.includes('south')) {
+            direction = 'south';
+            position = airportLocations.departing.south;
+        } else if (positionLower.includes('east')) {
+            direction = 'east';
+            position = airportLocations.departing.east;
+        } else if (positionLower.includes('west')) {
+            direction = 'west';
+            position = airportLocations.departing.west;
+        }
+        
+        result = {
+            valid: true,
+            x: position.x,
+            y: position.y,
+            rotation: directionRotation !== null ? directionRotation : position.rotation,
+            label: `Departing to ${direction}${runway ? ` RWY ${runway}` : ''}${altitude}`,
+            isOnGround: false
+        };
+    }
+    // Check for pattern positions
+    else if (positionLower.includes('downwind') || positionLower.includes('base') || 
+             positionLower.includes('final') || positionLower.includes('crosswind') || 
+             positionLower.includes('upwind')) {
+        
+        let patternLeg = '';
+        let position = airportLocations.pattern.downwind; // Default position
+        
+        if (positionLower.includes('downwind')) {
+            patternLeg = 'Downwind';
+            position = airportLocations.pattern.downwind;
+        } else if (positionLower.includes('base')) {
+            patternLeg = 'Base';
+            position = airportLocations.pattern.base;
+        } else if (positionLower.includes('final')) {
+            patternLeg = 'Final';
+            position = airportLocations.pattern.final;
+        } else if (positionLower.includes('crosswind')) {
+            patternLeg = 'Crosswind';
+            position = airportLocations.pattern.crosswind;
+        } else if (positionLower.includes('upwind')) {
+            patternLeg = 'Upwind';
+            position = airportLocations.pattern.upwind;
+        }
+        
+        result = {
+            valid: true,
+            x: position.x,
+            y: position.y,
+            rotation: directionRotation !== null ? directionRotation : position.rotation,
+            label: `${patternLeg}${runway ? ` RWY ${runway}` : ''}${altitude}`,
+            isOnGround: false
+        };
+    }
+    // Check for exiting airspace
+    else if (positionLower.includes('exit') || positionLower.includes('leaving')) {
+        let direction = 'north'; // Default direction
+        let position = airportLocations.approaching.north; // Reuse approaching positions for exiting
+        
+        if (positionLower.includes('north')) {
+            direction = 'north';
+            position = airportLocations.approaching.north;
+        } else if (positionLower.includes('south')) {
+            direction = 'south';
+            position = airportLocations.approaching.south;
+        } else if (positionLower.includes('east')) {
+            direction = 'east';
+            position = airportLocations.approaching.east;
+        } else if (positionLower.includes('west')) {
+            direction = 'west';
+            position = airportLocations.approaching.west;
+        }
+        
+        result = {
+            valid: true,
+            x: position.x,
+            y: position.y,
+            rotation: directionRotation !== null ? directionRotation : position.rotation,
+            label: `Exiting to ${direction}${altitude}`,
+            isOnGround: false
+        };
+    }
+    // Default to a random "away" position for any other description
+    else if (positionInfo.trim() !== '') {
+        // Pick a random position from the away array
+        const randomIndex = Math.floor(Math.random() * airportLocations.away.length);
+        const position = airportLocations.away[randomIndex];
+        
+        result = {
+            valid: true,
+            x: position.x,
+            y: position.y,
+            rotation: directionRotation !== null ? directionRotation : position.rotation,
             label: positionInfo,
-            isOnGround: false // Assume aircraft is in the air if we can't determine
+            isOnGround: false
         };
     }
     

@@ -56,12 +56,13 @@ body {
     100% { transform: scale(1); opacity: 0.9; }
 }
 
-.airport-diagram svg {
+/* Apply animation only to aircraft SVG, not airport SVG */
+.aircraft-icon svg {
     animation: pulse 2s infinite ease-in-out;
     filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
 }
 
-.dark .airport-diagram svg {
+.dark .aircraft-icon svg {
     filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
 }
 
