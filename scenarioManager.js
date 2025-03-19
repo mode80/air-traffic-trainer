@@ -588,11 +588,13 @@ class ScenarioManager {
             const positionText = scenario.position || "Unknown position";
             positionInfoEl.textContent = positionText;
             
-            // Hide the position container since we'll show it on the diagram
-            if (positionContainer && positionText !== "Unknown position") {
-                positionContainer.classList.add('hidden');
-            } else if (positionContainer) {
-                positionContainer.classList.remove('hidden');
+            // Always show the position container when we have a valid position
+            if (positionContainer) {
+                if (positionText === "Unknown position") {
+                    positionContainer.classList.add('hidden');
+                } else {
+                    positionContainer.classList.remove('hidden');
+                }
             }
         }
         

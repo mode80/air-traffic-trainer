@@ -3,58 +3,82 @@
  * Handles the generation of airport diagrams and aircraft positioning
  */
 
+// Define cardinal directions and their corresponding angles
+const DIRECTIONS = {
+    north: { angle: 0, opposite: 'south' },
+    northeast: { angle: 45, opposite: 'southwest' },
+    east: { angle: 90, opposite: 'west' },
+    southeast: { angle: 135, opposite: 'northwest' },
+    south: { angle: 180, opposite: 'north' },
+    southwest: { angle: 225, opposite: 'northeast' },
+    west: { angle: 270, opposite: 'east' },
+    northwest: { angle: 315, opposite: 'southeast' }
+};
+
+// Helper function to create a position object
+const createPosition = (x, y, rotation = null) => {
+    return rotation !== null ? { x, y, rotation } : { x, y };
+};
+
 // Define key locations in the airport for positioning
 const airportLocations = {
     // Core airport elements - these will be rotated with the airport
-    runway: { x: 50, y: 50 },
-    taxiway: { x: 42, y: 62 },
-    ramp: { x: 42, y: 68 },
-    holdingShort: { x: 42, y: 58 }, // Default holding short position
+    runway: createPosition(50, 50),
+    taxiway: createPosition(42, 62),
+    ramp: createPosition(42, 68),
+    holdingShort: createPosition(42, 58), // Default holding short position
     runwayEnds: {
-        north: { x: 50, y: 20 }, // North end of runway (for runways 18-36, where 36 is at the north end)
-        south: { x: 50, y: 80 }  // South end of runway (for runways 18-36, where 18 is at the south end)
+        north: createPosition(50, 20), // North end of runway (for runways 18-36, where 36 is at the north end)
+        south: createPosition(50, 80)  // South end of runway (for runways 18-36, where 18 is at the south end)
     },
     
-    // Fixed positions that don't rotate with the airport
-    fixedPositions: {
-        north: { x: 50, y: 8 },
-        northeast: { x: 92, y: 8 },
-        east: { x: 92, y: 50 },
-        southeast: { x: 92, y: 92 },
-        south: { x: 50, y: 90 },
-        southwest: { x: 8, y: 90 },
-        west: { x: 8, y: 50 },
-        northwest: { x: 8, y: 8 }
+    // Border positions for aircraft outside the airport
+    borderPositions: {
+        north: createPosition(50, 1),
+        northeast: createPosition(99, 1),
+        east: createPosition(99, 50),
+        southeast: createPosition(99, 99),
+        south: createPosition(50, 99),
+        southwest: createPosition(1, 99),
+        west: createPosition(1, 50),
+        northwest: createPosition(1, 1)
     },
     
-    // Aircraft positions relative to the airport - these will be rotated with the airport when on the ground
-    // For aircraft in the air, their absolute positions will be maintained
-    approaching: {
-        north: { x: 50, y: 8, rotation: 180 }, // Approaching from north, heading south
-        south: { x: 50, y: 90, rotation: 0 },   // Approaching from south, heading north
-        east: { x: 92, y: 8, rotation: 270 },  // Approaching from east, heading west
-        west: { x: 8, y: 50, rotation: 90 }    // Approaching from west, heading east
-    },
-    departing: {
-        north: { x: 50, y: 8, rotation: 0 },   // Departing to north, heading north
-        south: { x: 50, y: 90, rotation: 180 }, // Departing to south, heading south
-        east: { x: 92, y: 50, rotation: 90 },   // Departing to east, heading east
-        west: { x: 8, y: 50, rotation: 270 }   // Departing to west, heading west
-    },
+    // Pattern positions
     pattern: {
-        downwind: { x: 65, y: 8, rotation: 0 },   // Parallel to runway, opposite direction
-        base: { x: 65, y: 65, rotation: 90 },      // Perpendicular to downwind, turning to final
-        final: { x: 35, y: 65, rotation: 180 },    // Aligned with runway for landing
-        crosswind: { x: 35, y: 35, rotation: 270 }, // Perpendicular to upwind
-        upwind: { x: 35, y: 50, rotation: 180 }    // Parallel to runway, same direction
+        downwind: createPosition(65, 8, 0),   // Parallel to runway, opposite direction
+        base: createPosition(65, 65, 90),      // Perpendicular to downwind, turning to final
+        final: createPosition(35, 65, 180),    // Aligned with runway for landing
+        crosswind: createPosition(35, 35, 270), // Perpendicular to upwind
+        upwind: createPosition(35, 50, 180)    // Parallel to runway, same direction
     },
+    
+    // Random positions away from the airport
     away: [
-        { x: 25, y: 25, rotation: 135 },
-        { x: 75, y: 25, rotation: 225 },
-        { x: 75, y: 75, rotation: 315 },
-        { x: 25, y: 75, rotation: 45 }
+        createPosition(25, 25, 135),
+        createPosition(75, 25, 225),
+        createPosition(75, 75, 315),
+        createPosition(25, 75, 45)
     ]
 };
+
+// Generate approaching and departing positions based on border positions
+airportLocations.approaching = {};
+airportLocations.departing = {};
+
+Object.entries(DIRECTIONS).forEach(([direction, { angle }]) => {
+    // For approaching aircraft, use the border position but with rotation pointing inward (opposite of direction)
+    airportLocations.approaching[direction] = {
+        ...airportLocations.borderPositions[direction],
+        rotation: (angle + 180) % 360
+    };
+    
+    // For departing aircraft, use the border position with rotation pointing outward (same as direction)
+    airportLocations.departing[direction] = {
+        ...airportLocations.borderPositions[direction],
+        rotation: angle
+    };
+});
 
 /**
  * Detects direction from position text
@@ -62,26 +86,19 @@ const airportLocations = {
  * @returns {string|null} - Direction or null if not found
  */
 const detectDirection = (text) => {
-    const directions = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
-    
     // First check for exact direction matches
-    for (const dir of directions) {
+    for (const dir of Object.keys(DIRECTIONS)) {
         if (text.includes(dir)) {
             return dir;
         }
     }
     
     // Then check for directional terms with "bound" suffix
-    const boundDirections = {
-        'northbound': 'north',
-        'eastbound': 'east',
-        'southbound': 'south',
-        'westbound': 'west',
-        'northeast bound': 'northeast',
-        'southeast bound': 'southeast',
-        'southwest bound': 'southwest',
-        'northwest bound': 'northwest'
-    };
+    const boundDirections = {};
+    Object.keys(DIRECTIONS).forEach(dir => {
+        boundDirections[`${dir}bound`] = dir;
+        boundDirections[`${dir} bound`] = dir;
+    });
     
     for (const [bound, dir] of Object.entries(boundDirections)) {
         if (text.includes(bound)) {
@@ -109,28 +126,12 @@ const extractRunwayNumber = (text) => {
  * @returns {number|null} - Rotation in degrees or null if not found
  */
 const getExplicitRotation = (text) => {
-    const rotationMap = {
-        'north': 0,
-        'northeast': 45,
-        'east': 90,
-        'southeast': 135,
-        'south': 180,
-        'southwest': 225,
-        'west': 270,
-        'northwest': 315
-    };
-    
-    // Directional terms with "bound" suffix map to their corresponding directions
-    const boundRotationMap = {
-        'northbound': 0,
-        'eastbound': 90,
-        'southbound': 180,
-        'westbound': 270,
-        'northeast bound': 45,
-        'southeast bound': 135,
-        'southwest bound': 225,
-        'northwest bound': 315
-    };
+    // Create bound rotation map from DIRECTIONS
+    const boundRotationMap = {};
+    Object.entries(DIRECTIONS).forEach(([dir, { angle }]) => {
+        boundRotationMap[`${dir}bound`] = angle;
+        boundRotationMap[`${dir} bound`] = angle;
+    });
     
     // Check for bound directions first
     for (const [bound, rot] of Object.entries(boundRotationMap)) {
@@ -140,9 +141,9 @@ const getExplicitRotation = (text) => {
     }
     
     // Check for explicit direction phrases with prefixes like "facing" or "heading"
-    for (const [dir, rot] of Object.entries(rotationMap)) {
+    for (const [dir, { angle }] of Object.entries(DIRECTIONS)) {
         if (text.includes(`facing ${dir}`) || text.includes(`heading ${dir}`)) {
-            return rot;
+            return angle;
         }
     }
     
@@ -153,8 +154,8 @@ const getExplicitRotation = (text) => {
         if (word === 'heading' || word === 'facing') {
             // Check if the next word is a direction
             const nextWord = words[i + 1];
-            if (nextWord && rotationMap[nextWord]) {
-                return rotationMap[nextWord];
+            if (nextWord && DIRECTIONS[nextWord]) {
+                return DIRECTIONS[nextWord].angle;
             }
         }
     }
@@ -168,17 +169,8 @@ const getExplicitRotation = (text) => {
  * @returns {number} - Rotation in degrees
  */
 const getInboundRotation = (direction) => {
-    const inboundMap = {
-        'north': 180,    // Coming from north, facing south
-        'northeast': 225, // Coming from northeast, facing southwest
-        'east': 270,     // Coming from east, facing west
-        'southeast': 315, // Coming from southeast, facing northwest
-        'south': 0,      // Coming from south, facing north
-        'southwest': 45,  // Coming from southwest, facing northeast
-        'west': 90,      // Coming from west, facing east
-        'northwest': 135  // Coming from northwest, facing southeast
-    };
-    return inboundMap[direction] || 0;
+    if (!DIRECTIONS[direction]) return 0;
+    return (DIRECTIONS[direction].angle + 180) % 360;
 };
 
 /**
@@ -187,17 +179,8 @@ const getInboundRotation = (direction) => {
  * @returns {number} - Rotation in degrees
  */
 const getOutboundRotation = (direction) => {
-    const outboundMap = {
-        'north': 0,      // Going to north, facing north
-        'northeast': 45,  // Going to northeast, facing northeast
-        'east': 90,      // Going to east, facing east
-        'southeast': 135, // Going to southeast, facing southeast
-        'south': 180,    // Going to south, facing south
-        'southwest': 225, // Going to southwest, facing southwest
-        'west': 270,     // Going to west, facing west
-        'northwest': 315  // Going to northwest, facing northwest
-    };
-    return outboundMap[direction] || 0;
+    if (!DIRECTIONS[direction]) return 0;
+    return DIRECTIONS[direction].angle;
 };
 
 /**
@@ -213,7 +196,6 @@ function parseAircraftPosition(positionInfo) {
             x: 0,
             y: 0,
             rotation: 0,
-            label: '',
             isOnGround: false
         };
     }
@@ -222,13 +204,12 @@ function parseAircraftPosition(positionInfo) {
     const positionLower = positionInfo.toLowerCase();
     
     // Helper function to create position result object
-    const createPositionResult = (x, y, rotation, label, isOnGround) => {
+    const createPositionResult = (x, y, rotation, isOnGround) => {
         return {
             valid: true,
             x: x,
             y: y,
             rotation: rotation,
-            label: label,
             isOnGround: isOnGround
         };
     };
@@ -236,183 +217,142 @@ function parseAircraftPosition(positionInfo) {
     // Extract runway number if mentioned
     const runway = extractRunwayNumber(positionLower);
     
-    // Extract altitude if available
+    // Extract altitude if available - no longer needed for label generation
+    // but keeping the detection for possible future use
     const altMatch = positionLower.match(/at\s+(\d+,?\d*)\s*feet/i);
-    const altitude = altMatch ? `, ${altMatch[1].replace(',', '')} ft` : '';
     
     // Get explicit rotation from direction keywords - only for airborne aircraft
     const explicitRotation = getExplicitRotation(positionLower);
     
-    // Check for positions like "X miles [direction]"
-    const milesDirectionMatch = positionLower.match(/(\d+)\s+miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-    if (milesDirectionMatch) {
-        const miles = milesDirectionMatch[1];
-        const direction = milesDirectionMatch[2].toLowerCase();
+    /**
+     * Helper function to determine rotation based on context and runway
+     * @param {string} direction - Cardinal direction
+     * @param {string} context - Position context text
+     * @param {string} runway - Runway number if available
+     * @param {number|null} explicitRot - Explicit rotation if specified
+     * @returns {number} - Calculated rotation in degrees
+     */
+    const determineRotation = (direction, context, runway, explicitRot) => {
+        if (explicitRot !== null) return explicitRot;
         
-        // Place aircraft at the border based on direction
-        let x = 50, y = 50; // Default center
+        const isInbound = context.includes('inbound') || 
+                          context.includes('approaching') || 
+                          context.includes('landing') || 
+                          context.includes('for landing');
+                          
+        const isOutbound = context.includes('outbound') || 
+                           context.includes('departing') || 
+                           context.includes('takeoff');
         
-        // Position the aircraft at the border based on direction
-        switch(direction) {
-            case 'north':
-                x = 50;
-                y = 1;
-                break;
-            case 'northeast':
-                x = 99;
-                y = 1;
-                break;
-            case 'east':
-                x = 99;
-                y = 50;
-                break;
-            case 'southeast':
-                x = 99;
-                y = 99;
-                break;
-            case 'south':
-                x = 50;
-                y = 99;
-                break;
-            case 'southwest':
-                x = 1;
-                y = 99;
-                break;
-            case 'west':
-                x = 1;
-                y = 50;
-                break;
-            case 'northwest':
-                x = 1;
-                y = 1;
-                break;
-        }
-        
-        // Determine rotation based on keywords
-        let rotation = explicitRotation;
-        
-        if (rotation === null) {
-            if (positionLower.includes('inbound') || positionLower.includes('approaching') || positionLower.includes('for landing')) {
-                // If a runway number is specified, use it to determine the approach direction
-                if (runway) {
-                    const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                    // Runway numbers correspond to magnetic heading in tens of degrees
-                    // For example, runway 27 is oriented at 270 degrees (west)
-                    // Aircraft approaching runway 27 should be heading west (270 degrees)
-                    rotation = ((runwayNum * 10) + 180) % 360;
-                } else {
-                    // If no runway specified, use the default inbound rotation based on position
-                    rotation = getInboundRotation(direction);
-                }
-            } else if (positionLower.includes('outbound') || positionLower.includes('departing')) {
-                // If a runway number is specified, use it to determine the departure direction
-                if (runway) {
-                    const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                    // Aircraft departing runway 27 should be heading west (270 degrees)
-                    rotation = (runwayNum * 10) % 360;
-                } else {
-                    // If no runway specified, use the default outbound rotation based on position
-                    rotation = getOutboundRotation(direction);
-                }
-            } else {
-                rotation = 0; // Default rotation
+        // If runway is specified, use it to determine direction
+        if (runway) {
+            const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
+            if (isInbound) {
+                // Aircraft approaching runway 27 should be heading west (270 degrees)
+                return ((runwayNum * 10) + 180) % 360;
+            } else if (isOutbound) {
+                // Aircraft departing runway 27 should be heading west (270 degrees)
+                return (runwayNum * 10) % 360;
             }
         }
         
+        // If no runway specified, use the default rotation based on position
+        if (isInbound) {
+            return getInboundRotation(direction);
+        } else if (isOutbound) {
+            return getOutboundRotation(direction);
+        }
+        
+        return 0; // Default rotation
+    };
+    
+    /**
+     * Helper function to handle directional positions
+     * @param {string} direction - Cardinal direction
+     * @returns {Object} - Position result object
+     */
+    const handleDirectionalPosition = (direction) => {
+        // Get border position based on direction
+        const borderPosition = airportLocations.borderPositions[direction] || { x: 50, y: 50 };
+        
+        // Calculate rotation based on context
+        const rotation = determineRotation(direction, positionLower, runway, explicitRotation);
+        
         return createPositionResult(
-            x,
-            y,
+            borderPosition.x,
+            borderPosition.y,
             rotation,
-            `${miles} miles ${direction}${altitude}`,
             false // Not on ground
         );
+    };
+    
+    // Check for positions like "X miles [direction]"
+    const milesDirectionMatch = positionLower.match(/(\d+)\s+miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
+    if (milesDirectionMatch) {
+        const direction = milesDirectionMatch[2].toLowerCase();
+        return handleDirectionalPosition(direction);
     }
     
     // Check for directional position relative to airport (e.g., "north of", "west of")
     const directionalMatch = positionLower.match(/(north|south|east|west|northeast|northwest|southeast|southwest)\s+of/i);
     if (directionalMatch) {
         const direction = directionalMatch[1].toLowerCase();
-        
-        // Place aircraft at the border based on direction
-        let x = 50, y = 50; // Default center
-        
-        // Position the aircraft at the border based on direction
-        switch(direction) {
-            case 'north':
-                x = 50;
-                y = 1;
-                break;
-            case 'northeast':
-                x = 99;
-                y = 1;
-                break;
-            case 'east':
-                x = 99;
-                y = 50;
-                break;
-            case 'southeast':
-                x = 99;
-                y = 99;
-                break;
-            case 'south':
-                x = 50;
-                y = 99;
-                break;
-            case 'southwest':
-                x = 1;
-                y = 99;
-                break;
-            case 'west':
-                x = 1;
-                y = 50;
-                break;
-            case 'northwest':
-                x = 1;
-                y = 1;
-                break;
-        }
-        
-        // Determine rotation based on keywords
-        let rotation = explicitRotation;
-        
-        if (rotation === null) {
-            if (positionLower.includes('inbound') || positionLower.includes('approaching') || positionLower.includes('landing')) {
-                // If a runway number is specified, use it to determine the approach direction
-                if (runway) {
-                    const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                    // Runway numbers correspond to compass headings in tens of degrees
-                    // For example, runway 15 is oriented at approximately 150 degrees
-                    // Aircraft approaching runway 15 should be heading 330 degrees (northwest)
-                    rotation = ((runwayNum * 10) + 180) % 360;
-                } else {
-                    // If no runway specified, use the default inbound rotation based on position
-                    rotation = getInboundRotation(direction);
-                }
-            } else if (positionLower.includes('outbound') || positionLower.includes('departing')) {
-                // If a runway number is specified, use it to determine the departure direction
-                if (runway) {
-                    const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                    // Aircraft departing runway 27 should be heading west (270 degrees)
-                    rotation = (runwayNum * 10) % 360;
-                } else {
-                    // If no runway specified, use the default outbound rotation based on position
-                    rotation = getOutboundRotation(direction);
-                }
-            } else {
-                rotation = 0; // Default rotation
-            }
-        }
-        
-        return createPositionResult(
-            x,
-            y,
-            rotation,
-            positionInfo,
-            false // Not on ground
-        );
+        return handleDirectionalPosition(direction);
     }
     
-    // Check for ground positions
+    /**
+     * Helper function to handle ground positions
+     * @param {string} positionType - Type of ground position (ramp, taxiway, runway, etc.)
+     * @returns {Object|null} - Position result object or null if not applicable
+     */
+    const handleGroundPosition = (positionType) => {
+        // Extract facing direction if specified
+        const facingMatch = positionLower.match(/facing\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
+        let defaultRotation = 0;
+        let position;
+        
+        switch(positionType) {
+            case 'ramp':
+                position = airportLocations.ramp;
+                break;
+                
+            case 'taxiway':
+                position = airportLocations.taxiway;
+                break;
+                
+            case 'runway':
+                position = airportLocations.runway;
+                // Determine if the aircraft is taking off, landing, or just on the runway
+                if (positionLower.includes('taking off') || positionLower.includes('takeoff')) {
+                    defaultRotation = 0; // Aircraft is aligned with the runway for takeoff (heading north by default)
+                } else if (positionLower.includes('landing') || positionLower.includes('on approach')) {
+                    defaultRotation = 180; // Aircraft is aligned with the runway for landing (heading south by default)
+                }
+                break;
+                
+            case 'holding short':
+                // Always position the aircraft at the bottom where the relevant runway is labeled
+                return createPositionResult(
+                    42, // Use the exact taxiway x-coordinate from the SVG
+                    80, // Bottom position where the runway number is labeled
+                    facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : 90, // Default to facing the runway
+                    true // On ground
+                );
+                
+            default:
+                return null;
+        }
+        
+        // Apply explicit facing direction if specified, otherwise use default rotation
+        const rotation = facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : defaultRotation;
+        
+        return createPositionResult(
+            position.x,
+            position.y,
+            rotation,
+            true // On ground
+        );
+    };
     
     // Check for ramp, terminal, or apron position
     if (positionLower.includes('ramp') || 
@@ -422,90 +362,26 @@ function parseAircraftPosition(positionInfo) {
         positionLower.includes('general aviation') ||
         positionLower.includes('parking area')) {
         
-        let label = 'On the ramp';
-        
-        if (positionLower.includes('terminal')) {
-            label = 'At terminal';
-        } else if (positionLower.includes('apron')) {
-            label = 'On apron';
-        } else if (positionLower.includes('parked')) {
-            label = 'Parked';
-        } else if (positionLower.includes('general aviation') || positionLower.includes('parking area')) {
-            label = 'GA parking';
-        }
-        
-        // For ground aircraft, use default rotation (0) unless explicitly overridden with "facing" keyword
-        const facingMatch = positionLower.match(/facing\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-        const groundRotation = facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : 0;
-        
-        return createPositionResult(
-            airportLocations.ramp.x,
-            airportLocations.ramp.y,
-            groundRotation,
-            label,
-            true // On ground
-        );
+        const result = handleGroundPosition('ramp');
+        if (result) return result;
     }
     
     // Check for "holding short" position
     if (positionLower.includes('holding short')) {
-        // Always position the aircraft at the bottom (y=80) where the relevant runway is labeled
-        // The airport rotation will handle the proper orientation based on the runway heading
-        let holdingY = 80; // Bottom position where the runway number is labeled
-        let holdingRotation = 90; // Default rotation (facing the runway)
-        
-        // Allow explicit facing direction to override the default rotation
-        const facingMatch = positionLower.match(/facing\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-        if (facingMatch) {
-            holdingRotation = getExplicitRotation(`facing ${facingMatch[1]}`);
-        }
-        
-        return createPositionResult(
-            42, // Use the exact taxiway x-coordinate from the SVG
-            holdingY, // Y position at the bottom where the runway number is labeled
-            holdingRotation, // Default to facing the runway, but allow explicit facing override
-            runway ? `Holding short RWY ${runway}` : 'Holding short',
-            true // On ground
-        );
+        const result = handleGroundPosition('holding short');
+        if (result) return result;
     }
     
     // Check for taxiway position
     if (positionLower.includes('taxiway') || positionLower.includes('taxi')) {
-        // For taxiway positions, use default rotation (0 unless explicitly overridden with "facing" keyword
-        const facingMatch = positionLower.match(/facing\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-        const taxiRotation = facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : 0;
-        
-        return createPositionResult(
-            airportLocations.taxiway.x,
-            airportLocations.taxiway.y,
-            taxiRotation,
-            'On taxiway',
-            true // On ground
-        );
+        const result = handleGroundPosition('taxiway');
+        if (result) return result;
     }
     
     // Check for runway position
     if (positionLower.includes('runway') || positionLower.match(/\brwy\b/i)) {
-        // Determine if the aircraft is taking off, landing, or just on the runway
-        let defaultRotation = 0; // Default rotation aligned with runway heading north
-        
-        if (positionLower.includes('taking off') || positionLower.includes('takeoff')) {
-            defaultRotation = 0; // Aircraft is aligned with the runway for takeoff (heading north by default)
-        } else if (positionLower.includes('landing') || positionLower.includes('on approach')) {
-            defaultRotation = 180; // Aircraft is aligned with the runway for landing (heading south by default)
-        }
-        
-        // For runway positions, use activity-based default rotation unless explicitly overridden with "facing" keyword
-        const facingMatch = positionLower.match(/facing\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-        const runwayRotation = facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : defaultRotation;
-        
-        return createPositionResult(
-            airportLocations.runway.x,
-            airportLocations.runway.y,
-            runwayRotation,
-            runway ? `On RWY ${runway}` : 'On Runway',
-            true // On ground
-        );
+        const result = handleGroundPosition('runway');
+        if (result) return result;
     }
     
     // Check for air positions
@@ -517,121 +393,74 @@ function parseAircraftPosition(positionInfo) {
                 position.x,
                 position.y,
                 explicitRotation !== null ? explicitRotation : position.rotation,
-                `In ${pattern} leg${altitude}`,
                 false // Not on ground
             );
         }
     }
     
-    // Check for approach/departure positions
+    /**
+     * Helper function to handle approach/departure positions
+     * @param {boolean} isApproaching - Whether the aircraft is approaching (true) or departing (false)
+     * @returns {Object|null} - Position result object or null if not applicable
+     */
+    const handleApproachDeparture = (isApproaching) => {
+        // Determine direction based on context
+        let direction;
+        let defaultDirection = isApproaching ? 'south' : 'north'; // Default directions
+        
+        direction = detectDirection(positionLower) || defaultDirection;
+        
+        // If a runway number is specified, use it to determine the direction
+        if (runway) {
+            const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
+            // Calculate heading based on whether approaching or departing
+            const heading = isApproaching 
+                ? (runwayNum * 10 + 180) % 360  // Approach from opposite direction
+                : (runwayNum * 10) % 360;       // Depart in runway direction
+            
+            // Map the heading to a cardinal direction
+            direction = headingToDirection(heading);
+        }
+        
+        // Get the appropriate position (approaching or departing)
+        const positionMap = isApproaching ? airportLocations.approaching : airportLocations.departing;
+        const position = positionMap[direction];
+        
+        if (position) {
+            let rotation = explicitRotation;
+            
+            // If no explicit rotation and runway is specified, use runway heading
+            if (rotation === null && runway) {
+                const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
+                rotation = isApproaching 
+                    ? ((runwayNum * 10) + 180) % 360  // Approach from opposite direction
+                    : (runwayNum * 10) % 360;         // Depart in runway direction
+            } else if (rotation === null) {
+                // Use the default rotation for this direction
+                rotation = position.rotation;
+            }
+            
+            return createPositionResult(
+                position.x,
+                position.y,
+                rotation,
+                false // Not on ground
+            );
+        }
+        
+        return null;
+    };
+    
+    // Check for approach positions
     if (positionLower.includes('approach') || positionLower.includes('final')) {
-        // Try to determine the direction of approach
-        let direction = detectDirection(positionLower) || 'south'; // Default approach from south
-        
-        // If a runway number is specified, use it to determine the approach direction
-        if (runway) {
-            const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-            // Calculate the opposite direction of the runway heading (aircraft approach from opposite direction)
-            const approachHeading = (runwayNum * 10 + 180) % 360;
-            
-            // Map the approach heading to a cardinal direction
-            if (approachHeading >= 337.5 || approachHeading < 22.5) {
-                direction = 'north';
-            } else if (approachHeading >= 22.5 && approachHeading < 67.5) {
-                direction = 'northeast';
-            } else if (approachHeading >= 67.5 && approachHeading < 112.5) {
-                direction = 'east';
-            } else if (approachHeading >= 112.5 && approachHeading < 157.5) {
-                direction = 'southeast';
-            } else if (approachHeading >= 157.5 && approachHeading < 202.5) {
-                direction = 'south';
-            } else if (approachHeading >= 202.5 && approachHeading < 247.5) {
-                direction = 'southwest';
-            } else if (approachHeading >= 247.5 && approachHeading < 292.5) {
-                direction = 'west';
-            } else if (approachHeading >= 292.5 && approachHeading < 337.5) {
-                direction = 'northwest';
-            }
-        }
-        
-        const position = airportLocations.approaching[direction];
-        
-        if (position) {
-            let rotation = explicitRotation;
-            
-            // If no explicit rotation and runway is specified, use runway heading
-            if (rotation === null && runway) {
-                const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                // Aircraft approaching runway 27 should be heading west (270 degrees)
-                rotation = ((runwayNum * 10) + 180) % 360;
-            } else if (rotation === null) {
-                // Use the default rotation for this approach direction
-                rotation = position.rotation;
-            }
-            
-            return createPositionResult(
-                position.x,
-                position.y,
-                rotation,
-                runway ? `Approaching RWY ${runway}${altitude}` : `Approaching${altitude}`,
-                false // Not on ground
-            );
-        }
+        const result = handleApproachDeparture(true); // true for approaching
+        if (result) return result;
     }
     
+    // Check for departure positions
     if (positionLower.includes('depart') || positionLower.includes('takeoff')) {
-        // Try to determine the direction of departure
-        let direction = detectDirection(positionLower) || 'north'; // Default departure to north
-        
-        // If a runway number is specified, use it to determine the departure direction
-        if (runway) {
-            const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-            // Calculate the direction of the runway heading (aircraft depart in runway heading)
-            const departureHeading = (runwayNum * 10) % 360;
-            
-            // Map the departure heading to a cardinal direction
-            if (departureHeading >= 337.5 || departureHeading < 22.5) {
-                direction = 'north';
-            } else if (departureHeading >= 22.5 && departureHeading < 67.5) {
-                direction = 'northeast';
-            } else if (departureHeading >= 67.5 && departureHeading < 112.5) {
-                direction = 'east';
-            } else if (departureHeading >= 112.5 && departureHeading < 157.5) {
-                direction = 'southeast';
-            } else if (departureHeading >= 157.5 && departureHeading < 202.5) {
-                direction = 'south';
-            } else if (departureHeading >= 202.5 && departureHeading < 247.5) {
-                direction = 'southwest';
-            } else if (departureHeading >= 247.5 && departureHeading < 292.5) {
-                direction = 'west';
-            } else if (departureHeading >= 292.5 && departureHeading < 337.5) {
-                direction = 'northwest';
-            }
-        }
-        
-        const position = airportLocations.departing[direction];
-        
-        if (position) {
-            let rotation = explicitRotation;
-            
-            // If no explicit rotation and runway is specified, use runway heading
-            if (rotation === null && runway) {
-                const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-                // Aircraft departing runway 27 should be heading west (270 degrees)
-                rotation = (runwayNum * 10) % 360;
-            } else if (rotation === null) {
-                // Use the default rotation for this departure direction
-                rotation = position.rotation;
-            }
-            
-            return createPositionResult(
-                position.x,
-                position.y,
-                rotation,
-                runway ? `Departing RWY ${runway}${altitude}` : `Departing${altitude}`,
-                false // Not on ground
-            );
-        }
+        const result = handleApproachDeparture(false); // false for departing
+        if (result) return result;
     }
     
     // Default position - pick a random position away from the airport
@@ -642,9 +471,38 @@ function parseAircraftPosition(positionInfo) {
         randomPosition.x,
         randomPosition.y,
         explicitRotation !== null ? explicitRotation : randomPosition.rotation,
-        positionInfo,
         false // Not on ground
     );
+}
+
+/**
+ * Converts a heading in degrees to the closest cardinal direction
+ * @param {number} heading - Heading in degrees
+ * @returns {string} - Cardinal direction
+ */
+function headingToDirection(heading) {
+    // Normalize heading to 0-360 range
+    heading = ((heading % 360) + 360) % 360;
+    
+    if (heading >= 337.5 || heading < 22.5) {
+        return 'north';
+    } else if (heading >= 22.5 && heading < 67.5) {
+        return 'northeast';
+    } else if (heading >= 67.5 && heading < 112.5) {
+        return 'east';
+    } else if (heading >= 112.5 && heading < 157.5) {
+        return 'southeast';
+    } else if (heading >= 157.5 && heading < 202.5) {
+        return 'south';
+    } else if (heading >= 202.5 && heading < 247.5) {
+        return 'southwest';
+    } else if (heading >= 247.5 && heading < 292.5) {
+        return 'west';
+    } else if (heading >= 292.5 && heading < 337.5) {
+        return 'northwest';
+    }
+    
+    return 'north'; // Default fallback
 }
 
 /**
@@ -737,22 +595,8 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
         }
     }
     
-    // Update the flight information panel with the aircraft position
-    if (aircraftPosition.valid && aircraftPosition.label) {
-        // Find the position-info element in the Flight Information panel
-        const positionInfo = document.getElementById('position-info');
-        if (positionInfo) {
-            // Update the position text
-            positionInfo.textContent = aircraftPosition.label;
-            positionInfo.style.display = 'block';
-            
-            // Make sure the position container is visible
-            const positionContainer = document.getElementById('position-container');
-            if (positionContainer) {
-                positionContainer.style.display = 'block';
-            }
-        }
-    }
+    // We no longer need to update the position text here
+    // The original position text from the scenario is already set by ScenarioManager
     
     // Create a container with proper padding
     let diagramHTML = `
