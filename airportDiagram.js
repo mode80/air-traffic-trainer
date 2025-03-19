@@ -117,7 +117,7 @@ const detectDirection = (text) => {
 const extractRunwayNumber = (text) => {
     const textLower = text.toLowerCase();
     const runwayMatch = textLower.match(/runway\s+(\d+)([LRC]?)/i) || textLower.match(/\brwy\s+(\d+)([LRC]?)/i);
-    return runwayMatch ? runwayMatch[1] + (runwayMatch[2] || '') : null;
+    return runwayMatch ? runwayMatch[1] + (runwayMatch[2] ? runwayMatch[2].toUpperCase() : '') : null;
 };
 
 /**
@@ -534,7 +534,7 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
     
     if (runwayMatch) {
         activeRunway = runwayMatch[1];
-        runwaySuffix = runwayMatch[2];
+        runwaySuffix = runwayMatch[2] ? runwayMatch[2].toUpperCase() : '';
     }
     
     // Calculate opposite runway
@@ -598,32 +598,32 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
                     ${runwaySuffix === 'L' || runwaySuffix === 'R' ? `
                     <!-- Parallel runways for L/R runways -->
-                    <!-- Left runway -->
-                    <rect x="42.5" y="20" width="5" height="60" fill="${runwayColor}" />
-                    <!-- Right runway -->
-                    <rect x="52.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- First runway (standard position) -->
+                    <rect x="47.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- Second runway (on the other side) -->
+                    <rect x="57.5" y="20" width="5" height="60" fill="${runwayColor}" />
                     
-                    <!-- Left runway labels -->
-                    <g transform="translate(45, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- First runway labels -->
+                    <g transform="translate(50, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${activeRunway || '36'}L
+                            ${activeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
                         </text>
                     </g>
-                    <g transform="translate(45, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(50, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${oppositeRunway || '18'}R
+                            ${oppositeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
                         </text>
                     </g>
                     
-                    <!-- Right runway labels -->
-                    <g transform="translate(55, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- Second runway labels -->
+                    <g transform="translate(60, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${activeRunway || '36'}R
+                            ${activeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
                         </text>
                     </g>
-                    <g transform="translate(55, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(60, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${oppositeRunway || '18'}L
+                            ${oppositeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
                         </text>
                     </g>
                     ` : `
