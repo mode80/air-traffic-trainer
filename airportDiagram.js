@@ -123,7 +123,19 @@ const detectDirection = (text) => {
 const extractRunwayNumber = (text) => {
     const textLower = text.toLowerCase();
     const runwayMatch = textLower.match(/runway\s+(\d+)([LRC]?)/i) || textLower.match(/\brwy\s+(\d+)([LRC]?)/i);
-    return runwayMatch ? runwayMatch[1] + (runwayMatch[2] ? runwayMatch[2].toUpperCase() : '') : null;
+    
+    if (runwayMatch) {
+        // Get the runway number and add leading zero if needed
+        const runwayNum = parseInt(runwayMatch[1], 10);
+        const formattedRunwayNum = runwayNum < 10 ? `0${runwayNum}` : runwayNum.toString();
+        
+        // Add the suffix if present
+        const suffix = runwayMatch[2] ? runwayMatch[2].toUpperCase() : '';
+        
+        return formattedRunwayNum + suffix;
+    }
+    
+    return null;
 };
 
 /**
@@ -350,7 +362,7 @@ function parseAircraftPosition(positionInfo) {
         pos.includes('terminal') || 
         pos.includes('apron') ||
         pos.includes('parked') ||
-        pos.includes('general aviation') ||
+        pos.includes('hangar') ||
         pos.includes('parking area')) {
         
         const result = handleGroundPosition('ramp');
@@ -415,6 +427,7 @@ function parseAircraftPosition(positionInfo) {
         let rotation = explicitRotation;
         if (rotation === null && runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
+            
             rotation = ((runwayNum * 10) + 180) % 360;  // Approach from opposite direction
         } else if (rotation === null) {
             rotation = finalPosition.rotation;
@@ -610,11 +623,18 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
         const runwayNum = parseInt(activeRunway, 10);
         
         // Calculate opposite runway (difference from 36)
+        let oppositeRunwayNum;
         if (runwayNum <= 18) {
-            oppositeRunway = (runwayNum + 18).toString();
+            oppositeRunwayNum = runwayNum + 18;
         } else {
-            oppositeRunway = (runwayNum - 18).toString();
+            oppositeRunwayNum = runwayNum - 18;
         }
+        
+        // Format with leading zero for single digits
+        oppositeRunway = oppositeRunwayNum < 10 ? `0${oppositeRunwayNum}` : oppositeRunwayNum.toString();
+        
+        // Format active runway with leading zero if it's a single digit
+        activeRunway = runwayNum < 10 ? `0${runwayNum}` : activeRunway;
         
         // Handle the suffix (L becomes R, R becomes L, C stays C)
         if (runwaySuffix === 'L') {
@@ -669,24 +689,24 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     
                     <!-- First runway labels -->
                     <g transform="translate(50, 80) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${activeRunway}${runwaySuffix}
                         </text>
                     </g>
                     <g transform="translate(50, 20) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${oppositeSuffix}
                         </text>
                     </g>
                     
                     <!-- Second runway labels -->
                     <g transform="translate(60, 80) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${activeRunway}${oppositeSuffix}
                         </text>
                     </g>
                     <g transform="translate(60, 20) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${runwaySuffix}
                         </text>
                     </g>
@@ -696,13 +716,13 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     
                     <!-- Runway labels -->
                     <g transform="translate(50, 80) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${activeRunway || '36'}${runwaySuffix}
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                            ${activeRunway ? activeRunway : '36'}${runwaySuffix}
                         </text>
                     </g>
                     <g transform="translate(50, 20) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
-                            ${oppositeRunway || '18'}${oppositeSuffix}
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                            ${oppositeRunway ? oppositeRunway : '18'}${oppositeSuffix}
                         </text>
                     </g>
                     `}
