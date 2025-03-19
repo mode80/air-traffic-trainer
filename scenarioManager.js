@@ -597,7 +597,7 @@ class ScenarioManager {
         }
         
         // Generate airport diagram with position information
-        window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered, scenario.position);
+        window.generateAirportDiagram(this.airportDiagramEl, scenario.isTowered, scenario.position, scenario.weatherInfo || '');
         
         // Weather information - only show if there's weather info available
         if (scenario.weatherInfo && scenario.weatherInfo.trim() !== '') {
