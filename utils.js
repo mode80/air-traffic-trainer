@@ -68,113 +68,67 @@ window.showApiKeyInfo = function() {
 
 // Generate a simple airport diagram
 window.generateAirportDiagram = function(container, isTowered, positionInfo = '') {
-    const isDarkMode = document.body.classList.contains('dark');
-    const bgColor = isDarkMode ? '#262626' : '#F0F0F0';
-    const runwayColor = isDarkMode ? '#505050' : '#333333';
-    const taxiwayColor = isDarkMode ? '#364968' : '#6B8CCF';
-    const rampColor = isDarkMode ? '#404040' : '#B0B0B0';
-    const textColor = isDarkMode ? '#E0E0E0' : '#333333';
-    const aircraftColor = isDarkMode ? '#E0E0E0' : '#D32F2F';
-    
     // Parse the position information to determine aircraft location
     const aircraftPosition = parseAircraftPosition(positionInfo);
     
-    // Determine the active runway from the scenario
-    let activeRunway = null;
-    let runwayHeading = null;
-    let runwaySuffix = ''; // For L/R/C designations
+    // Set colors based on the current theme
+    const isDarkMode = document.body.classList.contains('dark');
+    const bgColor = isDarkMode ? '#262626' : '#F0F0F0';
+    const textColor = isDarkMode ? '#E0E0E0' : '#333333';
+    const runwayColor = isDarkMode ? '#505050' : '#333333';
+    const taxiwayColor = isDarkMode ? '#364968' : '#6B8CCF';
+    const rampColor = isDarkMode ? '#404040' : '#B0B0B0';
+    const aircraftColor = isDarkMode ? '#E0E0E0' : '#D32F2F';
     
-    // Convert position info to lowercase for case-insensitive matching
-    const positionLower = positionInfo.toLowerCase();
+    // Extract runway information from position text if available
+    let activeRunway = '';
+    let runwaySuffix = '';
     
-    // First, check for explicit runway mentions in the position info
-    const runwayMatch = positionInfo.match(/runway\s+(\d+)([LRC])?/i);
+    const runwayMatch = positionInfo ? positionInfo.match(/runway\s+(\d+)([LRC]?)/i) : null;
     if (runwayMatch) {
         activeRunway = runwayMatch[1];
-        runwaySuffix = runwayMatch[2] || '';
-        // Convert runway number to heading (runway 36 = 360 degrees, runway 9 = 90 degrees)
-        runwayHeading = parseInt(activeRunway, 10) * 10;
-        if (runwayHeading === 0) runwayHeading = 360; // Convert runway 0 to 360 degrees
+        runwaySuffix = runwayMatch[2];
     }
     
-    // If no runway found in position, check if there's a weather info element with runway information
-    if (!activeRunway) {
-        const weatherInfo = document.getElementById('weather-info');
-        if (weatherInfo) {
-            const weatherText = weatherInfo.textContent;
-            // Look for runway information in ATIS (e.g., "Landing and departing runway 17L")
-            const atisRunwayMatch = weatherText.match(/runway\s+(\d+)([LRC])?/i);
-            if (atisRunwayMatch) {
-                activeRunway = atisRunwayMatch[1];
-                runwaySuffix = atisRunwayMatch[2] || '';
-                // Convert runway number to heading
-                runwayHeading = parseInt(activeRunway, 10) * 10;
-                if (runwayHeading === 0) runwayHeading = 360;
-            }
-        }
-    }
-    
-    // Check for runway mentions in the position info without the word "runway"
-    // This handles cases like "Holding short RWY 14"
-    if (!activeRunway) {
-        const rwyMatch = positionLower.match(/\bRWY\s+(\d+)([LRC])?/i);
-        if (rwyMatch) {
-            activeRunway = rwyMatch[1];
-            runwaySuffix = rwyMatch[2] || '';
-            // Convert runway number to heading
-            runwayHeading = parseInt(activeRunway, 10) * 10;
-            if (runwayHeading === 0) runwayHeading = 360;
-        }
-    }
-    
-    // Calculate the rotation needed for the entire airport diagram
-    // The entire airport (runways, taxiway, ramp) will rotate as a single unit
-    
-    // Default rotation (no rotation)
-    let airportRotation = 0;
-    
-    if (runwayHeading) {
-        // For proper orientation:
-        // - Runway 36 (360°) should point to the top (North, 0°)
-        // - Runway 09 (90°) should point to the right (East, 90°)
-        // - Runway 18 (180°) should point to the bottom (South, 180°)
-        // - Runway 27 (270°) should point to the left (West, 270°)
-        
-        // In our default diagram, the runway with label "33" is at 330° (NW)
-        // We need to rotate the entire diagram so that the runway with the scenario-mentioned
-        // runway number is positioned correctly relative to compass orientation
-        
-        // Calculate rotation: 
-        // If runway is 33, no rotation needed (0°)
-        // For any other runway X, we need to rotate so that X is positioned at X*10 degrees
-        
-        // Formula: runway heading - 330° (the default heading of the "33" runway)
-        airportRotation = (runwayHeading - 330) % 360;
-        
-        // Normalize to -180 to 180 range for easier visualization
-        if (airportRotation > 180) {
-            airportRotation -= 360;
-        }
-    }
-    
-    // Determine the opposite runway number (the other end of the runway)
-    // For example, if runway is 09, the opposite is 27
-    // If runway is 36, the opposite is 18
-    let oppositeRunway = null;
+    // Calculate opposite runway
+    let oppositeRunway = '';
     let oppositeSuffix = '';
     
     if (activeRunway) {
-        // Calculate the opposite runway number
-        oppositeRunway = (Math.floor(((parseInt(activeRunway, 10) * 10 + 180) % 360) / 10) || 36).toString().padStart(2, '0');
+        // Convert runway number to integer
+        let runwayNum = parseInt(activeRunway, 10);
         
-        // Handle the opposite runway suffix (L becomes R, R becomes L, C stays C)
-        // Only if the original runway had a suffix
+        // Calculate opposite runway (180 degrees opposite)
+        oppositeRunway = (runwayNum <= 18) ? (runwayNum + 18).toString() : (runwayNum - 18).toString();
+        
+        // Ensure it's formatted as a two-digit number
+        if (oppositeRunway.length === 1) {
+            oppositeRunway = '0' + oppositeRunway;
+        }
+        
+        // Handle the suffix (L becomes R, R becomes L, C stays C)
         if (runwaySuffix === 'L') {
             oppositeSuffix = 'R';
         } else if (runwaySuffix === 'R') {
             oppositeSuffix = 'L';
         } else if (runwaySuffix === 'C') {
             oppositeSuffix = 'C';
+        }
+    }
+    
+    // Calculate rotation based on runway number
+    let airportRotation = 0;
+    if (activeRunway) {
+        // Convert runway number to heading (runway 36 = 360 degrees, runway 9 = 90 degrees)
+        const runwayHeading = parseInt(activeRunway, 10) * 10;
+        
+        // Convert heading to SVG rotation (0 degrees = North, increasing clockwise)
+        // SVG rotation is 0 at East and increases counter-clockwise, so we need to adjust
+        airportRotation = 90 - runwayHeading;
+        
+        // Normalize to keep within 0-360 range
+        if (airportRotation < 0) {
+            airportRotation += 360;
         }
     }
     
@@ -249,11 +203,11 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                     `<!-- Secondary runway (towered) - perpendicular to the main runway -->
                     <rect x="30" y="48" width="40" height="4" fill="${runwayColor}" />` : ''}
                     
+                    <!-- Ramp area on the left side of the taxiway (placed before taxiway for proper z-order) -->
+                    <rect x="35" y="65" width="14" height="8" transform="rotate(-45, 42, 68)" fill="${rampColor}" rx="1" ry="1" />
+                    
                     <!-- Taxiway positioned to intersect with the main runway -->
                     <rect x="20" y="60" width="60" height="4" transform="rotate(-45, 50, 50)" fill="${taxiwayColor}" />
-                    
-                    <!-- Ramp area on the left side of the taxiway -->
-                    <rect x="35" y="65" width="14" height="8" transform="rotate(-45, 42, 68)" fill="${rampColor}" rx="1" ry="1" />
                     
                     <!-- Runway heading labels with counter-rotation to keep them upright -->
                     <g transform="rotate(-${airportRotation}, 30, 30)">
@@ -267,18 +221,11 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                             ${oppositeRunway || '15'}${oppositeSuffix}
                         </text>
                     </g>
-                    
-                    <!-- Aircraft on ground or in pattern (part of the rotatable airport) -->
-                    ${aircraftPosition.valid && aircraftPosition.isOnGround ? `
-                    <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation - airportRotation})">
-                        <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
-                    </g>
-                    ` : ''}
                 </g>
                 
-                <!-- Aircraft approaching or departing (outside the rotatable airport) -->
-                ${aircraftPosition.valid && !aircraftPosition.isOnGround ? `
-                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
+                <!-- Aircraft is rendered separately to ensure proper positioning -->
+                ${aircraftPosition.valid ? `
+                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.isOnGround ? aircraftPosition.rotation + airportRotation : aircraftPosition.rotation})">
                     <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                 </g>
                 ` : ''}
