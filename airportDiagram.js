@@ -375,6 +375,26 @@ function parseAircraftPosition(positionInfo) {
         }
     }
     
+    // Special case for "final approach" - use the pattern.final position
+    if (pos.includes('final approach')) {
+        const finalPosition = airportLocations.pattern.final;
+        // If runway is specified, adjust rotation based on runway heading
+        let rotation = explicitRotation;
+        if (rotation === null && runway) {
+            const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
+            rotation = ((runwayNum * 10) + 180) % 360;  // Approach from opposite direction
+        } else if (rotation === null) {
+            rotation = finalPosition.rotation;
+        }
+        
+        return createPositionResult(
+            finalPosition.x,
+            finalPosition.y,
+            rotation,
+            true // near airport
+        );
+    }
+    
     // Check if aircraft has departed - place in departure position
     if (pos.includes('departed')) {
         // Position the aircraft in the departure position, aligned with the runway and heading away from the airport
@@ -392,7 +412,6 @@ function parseAircraftPosition(positionInfo) {
         const result = handleGroundPosition('runway');
         if (result) return result;
     }
-    
     
     /**
      * Helper function to handle approach/departure positions
@@ -450,7 +469,7 @@ function parseAircraftPosition(positionInfo) {
     };
     
     // Check for approach positions
-    if (pos.includes('approach') || pos.includes('final')) {
+    if ((pos.includes('approach') || pos.includes('final')) && !pos.includes('final approach')) {
         const result = handleApproachDeparture(true); // true for approaching
         if (result) return result;
     }
@@ -610,30 +629,30 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
                     ${runwaySuffix === 'L' || runwaySuffix === 'R' ? `
                     <!-- Parallel runways for L/R runways -->
-                    <!-- First runway (standard position) -->
-                    <rect x="47.5" y="20" width="5" height="60" fill="${runwayColor}" />
-                    <!-- Second runway (on the other side) -->
-                    <rect x="57.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- Left runway -->
+                    <rect x="42.5" y="20" width="5" height="60" fill="${runwayColor}" />
+                    <!-- Right runway -->
+                    <rect x="52.5" y="20" width="5" height="60" fill="${runwayColor}" />
                     
-                    <!-- First runway labels -->
-                    <g transform="translate(50, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- Left runway labels -->
+                    <g transform="translate(45, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
                             ${activeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
                         </text>
                     </g>
-                    <g transform="translate(50, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(45, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
                         </text>
                     </g>
                     
-                    <!-- Second runway labels -->
-                    <g transform="translate(60, 80) rotate(${airportRotation}, 0, 0)">
+                    <!-- Right runway labels -->
+                    <g transform="translate(55, 80) rotate(${airportRotation}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
                             ${activeRunway}${runwaySuffix === 'L' ? 'R' : 'L'}
                         </text>
                     </g>
-                    <g transform="translate(60, 20) rotate(${airportRotation + 180}, 0, 0)">
+                    <g transform="translate(55, 20) rotate(${airportRotation + 180}, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${runwaySuffix === 'L' ? 'L' : 'R'}
                         </text>

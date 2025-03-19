@@ -575,22 +575,22 @@ class ScenarioManager {
         }
         
         // Basic aircraft and airport information
-        this.aircraftTypeEl.textContent = scenario.aircraft || "Unknown aircraft";
-        this.tailNumberEl.textContent = scenario.tailNumber || "Unknown registration";
-        this.airportEl.textContent = scenario.airport || "Unknown airport";
+        this.aircraftTypeEl.textContent = scenario.aircraft || "";
+        this.tailNumberEl.textContent = scenario.tailNumber || "";
+        this.airportEl.textContent = scenario.airport || "";
         this.airportTypeEl.textContent = scenario.isTowered !== undefined ? 
-            (scenario.isTowered ? "Towered" : "Uncontrolled") : "Unknown";
+            (scenario.isTowered ? "Towered" : "Uncontrolled") : "";
         
         // Position information
         const positionInfoEl = document.getElementById('position-info');
         const positionContainer = document.getElementById('position-container');
         if (positionInfoEl) {
-            const positionText = scenario.position || "Unknown position";
+            const positionText = scenario.position || "";
             positionInfoEl.textContent = positionText;
             
             // Always show the position container when we have a valid position
             if (positionContainer) {
-                if (positionText === "Unknown position") {
+                if (positionText === "") {
                     positionContainer.classList.add('hidden');
                 } else {
                     positionContainer.classList.remove('hidden');
@@ -617,6 +617,27 @@ class ScenarioManager {
         this.scenarioDescription.classList.add('hidden');
         this.newScenarioBtn.disabled = true;
         document.getElementById('submit-response-btn').disabled = true;
+        
+        // Reset flight information to loading state
+        this.aircraftTypeEl.textContent = "";
+        this.tailNumberEl.textContent = "";
+        this.airportEl.textContent = "";
+        this.airportTypeEl.textContent = "";
+        
+        // Reset position information
+        const positionInfoEl = document.getElementById('position-info');
+        if (positionInfoEl) {
+            positionInfoEl.textContent = "";
+        }
+        
+        // Hide position container during loading
+        const positionContainer = document.getElementById('position-container');
+        if (positionContainer) {
+            positionContainer.classList.add('hidden');
+        }
+        
+        // Hide weather container during loading
+        this.weatherContainer.classList.add('hidden');
         
         // Sample scenario objects to use as examples - limit to 10 random examples to keep prompt size manageable
         const sampleSize = 10;
@@ -811,7 +832,7 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
         document.getElementById('submit-response-btn').disabled = false;
         
         // Create the scenario text with proper null check - don't include ATC call since it will be in the Interaction panel
-        let scenarioText = `<p>${scenario.description || "No scenario description available"}</p>`;
+        let scenarioText = `<p>${scenario.description || ""}</p>`;
         
         // Display the scenario
         this.scenarioDescription.innerHTML = scenarioText;
