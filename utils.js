@@ -209,15 +209,17 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                     <!-- Taxiway positioned to intersect with the main runway -->
                     <rect x="20" y="60" width="60" height="4" transform="rotate(-45, 50, 50)" fill="${taxiwayColor}" />
                     
-                    <!-- Runway heading labels with counter-rotation to keep them upright -->
-                    <g transform="rotate(-${airportRotation}, 30, 30)">
-                        <text x="30" y="30" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
+                    <!-- Runway heading labels perpendicular to runway direction and facing outward -->
+                    <!-- First runway end (top-left) - perpendicular to runway and facing outward -->
+                    <g transform="translate(30, 30) rotate(${45 - 90 + 180 + airportRotation}, 0, 0)">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
                             ${activeRunway || '33'}${runwaySuffix}
                         </text>
                     </g>
                     
-                    <g transform="rotate(-${airportRotation}, 70, 70)">
-                        <text x="70" y="70" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
+                    <!-- Second runway end (bottom-right) - perpendicular to runway and facing outward -->
+                    <g transform="translate(70, 70) rotate(${45 + 90 + 180 + airportRotation}, 0, 0)">
+                        <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
                             ${oppositeRunway || '15'}${oppositeSuffix}
                         </text>
                     </g>
