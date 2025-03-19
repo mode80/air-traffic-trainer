@@ -118,33 +118,24 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
     
     // Calculate rotation based on runway number
     let airportRotation = 0;
-    // Setting rotation to 0 in all cases to see baseline orientation
-    // if (activeRunway) {
-    //     // Convert runway number to heading (runway 36 = 360 degrees, runway 9 = 90 degrees)
-    //     const runwayHeading = parseInt(activeRunway, 10) * 10;
+    if (activeRunway) {
+        // Convert runway number to integer
+        const runwayNum = parseInt(activeRunway, 10);
         
-    //     // For SVG, 0 degrees is East and rotation increases counter-clockwise
-    //     // We want aircraft to land in the direction indicated by the runway number
-    //     // For runway 15, aircraft should land heading 150 degrees (SE)
+        // Calculate rotation: the current orientation is correct for runway 36
+        // For other runways, rotate by (36 - runway_number) * 10 degrees
+        airportRotation = (runwayNum - 36) * 10;
         
-    //     // The runway in SVG is initially at 45 degrees (NE to SW)
-    //     // To align it with the runway heading, we need to rotate it so that
-    //     // the approach end is aligned with the opposite of the runway heading
-        
-    //     // Calculate the rotation needed: 
-    //     // We want the runway to point in the direction opposite to the runway heading
-    //     // So we need to rotate from the initial 45 degrees to (runwayHeading + 180) % 360
-    //     airportRotation = (runwayHeading + 180) % 360 - 45;
-        
-    //     // Normalize to keep within 0-360 range
-    //     if (airportRotation < 0) {
-    //         airportRotation += 360;
-    //     }
-    // }
+        // Normalize to keep within 0-360 range
+        if (airportRotation < 0) {
+            airportRotation += 360;
+        }
+        if (airportRotation >= 360) {
+            airportRotation -= 360;
+        }
+    }
     
     // Define key locations in the airport for positioning
-    // The airport elements will be centered in the middle 60% of the SVG (20% margin on top and bottom)
-    // For a 100x100 viewBox, this means coordinates from 20 to 80 vertically
     const airportLocations = {
         runway: { x: 50, y: 50 },
         taxiway: { x: 50, y: 62 },
@@ -205,7 +196,7 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
             <!-- SVG container for the entire diagram -->
             <svg id="airport-svg" width="100%" height="100%" viewBox="0 0 100 100" style="position:absolute; top:0; left:0; width:100%; height:100%;">
                 <!-- Airport elements group - occupying the middle 60% of the SVG -->
-                <g id="airport-elements">
+                <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
                     <!-- Primary runway (main runway) - sized to occupy approximately 60% of vertical space, but thinner -->
                     <rect x="47.5" y="20" width="5" height="60" fill="${runwayColor}" />
                     
@@ -220,24 +211,24 @@ window.generateAirportDiagram = function(container, isTowered, positionInfo = ''
                     <rect x="37" y="55" width="6" height="14" fill="${rampColor}" rx="1" ry="1" />
                     
                     <!-- Runway heading labels perpendicular to runway direction and facing outward -->
-                    <!-- First runway end (top) - perpendicular to runway and facing outward -->
-                    <g transform="translate(50, 20) rotate(0, 0, 0)">
+                    <!-- First runway end (bottom) - perpendicular to runway and facing outward -->
+                    <g transform="translate(50, 80) rotate(0, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
-                            ${activeRunway || '33'}${runwaySuffix}
+                            ${activeRunway || '36'}${runwaySuffix}
                         </text>
                     </g>
                     
-                    <!-- Second runway end (bottom) - perpendicular to runway and facing outward -->
-                    <g transform="translate(50, 80) rotate(180, 0, 0)">
+                    <!-- Second runway end (top) - perpendicular to runway and facing outward -->
+                    <g transform="translate(50, 20) rotate(180, 0, 0)">
                         <text x="0" y="0" fill="${textColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold">
-                            ${oppositeRunway || '15'}${oppositeSuffix}
+                            ${oppositeRunway || '18'}${oppositeSuffix}
                         </text>
                     </g>
                 </g>
                 
                 <!-- Aircraft is rendered separately to ensure proper positioning -->
                 ${aircraftPosition.valid ? `
-                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.isOnGround ? aircraftPosition.rotation : aircraftPosition.rotation})">
+                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.isOnGround ? aircraftPosition.rotation + airportRotation : aircraftPosition.rotation})">
                     <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                 </g>
                 ` : ''}
