@@ -34,14 +34,14 @@ const airportLocations = {
     
     // Border positions for aircraft outside the airport
     borderPositions: {
-        north: createPosition(50, 3),
-        northeast: createPosition(97, 3),
-        east: createPosition(97, 50),
-        southeast: createPosition(97, 97),
-        south: createPosition(50, 97),
-        southwest: createPosition(3, 97), // Bottom-left corner
-        west: createPosition(3, 50),
-        northwest: createPosition(3, 3)
+        north: createPosition(50, 6),
+        northeast: createPosition(94, 6),
+        east: createPosition(94, 50),
+        southeast: createPosition(94, 94),
+        south: createPosition(50, 94),
+        southwest: createPosition(3, 94), // Bottom-left corner
+        west: createPosition(5, 50),
+        northwest: createPosition(6, 6)
     },
     
     // Pattern positions
@@ -800,7 +800,7 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
                         <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                         ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
-                        <text x="0" y="3" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                        <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
                         </text>
                         ` : ''}
@@ -814,7 +814,7 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
                         <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                         ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
-                        <text x="0" y="3" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                        <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
                         </text>
                         ` : ''}
