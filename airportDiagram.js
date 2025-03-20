@@ -34,14 +34,14 @@ const airportLocations = {
     
     // Border positions for aircraft outside the airport
     borderPositions: {
-        north: createPosition(50, 1),
-        northeast: createPosition(99, 1),
-        east: createPosition(99, 50),
-        southeast: createPosition(99, 99),
-        south: createPosition(50, 99),
-        southwest: createPosition(1, 99),
-        west: createPosition(1, 50),
-        northwest: createPosition(1, 1)
+        north: createPosition(50, 3),
+        northeast: createPosition(97, 3),
+        east: createPosition(97, 50),
+        southeast: createPosition(97, 97),
+        south: createPosition(50, 97),
+        southwest: createPosition(3, 97), // Bottom-left corner
+        west: createPosition(3, 50),
+        northwest: createPosition(3, 3)
     },
     
     // Pattern positions
@@ -117,7 +117,7 @@ const detectDirection = (text) => {
 
 /**
  * Extracts the runway number from a position text
- * @param {string} text - Position text
+ * @param {string} text - Position information text
  * @returns {string|null} - Runway number or null if not found
  */
 const extractRunwayNumber = (text) => {
@@ -300,11 +300,14 @@ function parseAircraftPosition(positionInfo) {
         // Calculate rotation based on context
         const rotation = determineRotation(direction, pos, runway, explicitRotation);
         
+        // Log for debugging
+        console.log(`Positioning aircraft at ${direction} position: (${borderPosition.x}, ${borderPosition.y})`);
+        
         return createPositionResult(
             borderPosition.x,
             borderPosition.y,
             rotation,
-            distance, // Include the extracted distance
+            distance || 2, // If no specific distance, use 2 miles for approach/departure
             altitude // Include the extracted altitude
         );
     };
@@ -320,6 +323,13 @@ function parseAircraftPosition(positionInfo) {
     const directionalMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)\s+of/i);
     if (directionalMatch) {
         const direction = directionalMatch[1].toLowerCase();
+        return handleDirectionalPosition(direction);
+    }
+    
+    // Check for directional position with airport name (e.g., "southwest of Austin-Bergstrom")
+    const airportDirectionalMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)\s+of\s+[\w\s-]+/i);
+    if (airportDirectionalMatch) {
+        const direction = airportDirectionalMatch[1].toLowerCase();
         return handleDirectionalPosition(direction);
     }
     
@@ -451,6 +461,7 @@ function parseAircraftPosition(positionInfo) {
         const finalPosition = airportLocations.pattern.final;
         // If runway is specified, adjust rotation based on runway heading
         let rotation = explicitRotation;
+        
         if (rotation === null && runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
             
@@ -479,6 +490,18 @@ function parseAircraftPosition(positionInfo) {
             0, // Aircraft just departed has distance 0
             altitude // Include the extracted altitude
         );
+    }
+    
+    // Check for approach positions
+    if ((pos.includes('approach') || pos.includes('final')) && !pos.includes('final approach')) {
+        const result = handleApproachDeparture(true); // true for approaching
+        if (result) return result;
+    }
+    
+    // Check for departure positions
+    if (pos.includes('depart') || pos.includes('takeoff')) {
+        const result = handleApproachDeparture(false); // false for departing
+        if (result) return result;
     }
     
     // Check for runway position last as many above include the word 'runway'
@@ -543,19 +566,14 @@ function parseAircraftPosition(positionInfo) {
         return null;
     };
     
-    // Check for approach positions
-    if ((pos.includes('approach') || pos.includes('final')) && !pos.includes('final approach')) {
-        const result = handleApproachDeparture(true); // true for approaching
-        if (result) return result;
-    }
-    
-    // Check for departure positions
-    if (pos.includes('depart') || pos.includes('takeoff')) {
-        const result = handleApproachDeparture(false); // false for departing
-        if (result) return result;
-    }
-    
     // Default position - pick a random position away from the airport
+    // If we have a direction in the text but didn't match earlier patterns, try to extract it now
+    const anyDirectionMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)/i);
+    if (anyDirectionMatch) {
+        const direction = anyDirectionMatch[1].toLowerCase();
+        return handleDirectionalPosition(direction);
+    }
+    
     const randomIndex = Math.floor(Math.random() * airportLocations.away.length);
     const randomPosition = airportLocations.away[randomIndex];
     
