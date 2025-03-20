@@ -127,10 +127,11 @@ const extractRunwayNumber = (text) => {
     if (runwayMatch) {
         // Get the runway number and add leading zero if needed
         const runwayNum = parseInt(runwayMatch[1], 10);
-        const formattedRunwayNum = runwayNum < 10 ? `0${runwayNum}` : runwayNum.toString();
         
         // Add the suffix if present
         const suffix = runwayMatch[2] ? runwayMatch[2].toUpperCase() : '';
+        
+        const formattedRunwayNum = runwayNum < 10 ? `0${runwayNum}` : runwayNum.toString();
         
         return formattedRunwayNum + suffix;
     }
@@ -730,6 +731,20 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
     // Create a container with proper padding
     let diagramHTML = `
         <div style="width:100%; height:100%; background-color:${bgColor}; position:relative; border-radius:0.5rem; overflow:hidden;">
+            <!-- Style for aircraft pulsing animation -->
+            <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
+                .aircraft-pulse {
+                    animation: pulse 3s infinite ease-in-out;
+                    transform-box: fill-box;
+                    transform-origin: center;
+                }
+            </style>
+            
             <!-- North indicator - fixed, never rotates -->
             <div style="position:absolute; top:15px; left:15px; color:${textColor}; border:1px solid ${textColor}; width:24px; height:24px; border-radius:50%; text-align:center; line-height:22px; z-index:20;">
                 N
@@ -799,7 +814,9 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     <!-- Aircraft on ground is rendered inside the airport-elements group to rotate with the airport -->
                     ${aircraftPosition.valid && aircraftPosition.distance <= 1.0 ? `
                     <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
-                        <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        <g class="aircraft-pulse">
+                            <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        </g>
                         ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
                         <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
@@ -813,7 +830,9 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 ${aircraftPosition.valid && aircraftPosition.distance > 1.0 ? `
                 <g class="aircraft-icon">
                     <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
-                        <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        <g class="aircraft-pulse">
+                            <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        </g>
                         ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
                         <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
