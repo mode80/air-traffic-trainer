@@ -204,21 +204,40 @@ const getOutboundRotation = (direction) => {
 /**
  * Parses aircraft position information to determine coordinates and rotation
  * @param {string} positionInfo - Position information text
- * @returns {Object} - Position result with coordinates, rotation, and validity
+ * @returns {Object} - Position result with coordinates, rotation, validity, distance, and altitude
  */
 function parseAircraftPosition(positionInfo) {
     // Default invalid position
     if (!positionInfo || positionInfo.trim() === '') {
-        return { valid: false, x: 0, y: 0, rotation: 0, isNearAirport: false };
+        return { valid: false, x: 0, y: 0, rotation: 0, distance: 0, altitude: 0 };
     }
     
     // Convert to lowercase for case-insensitive matching
     const pos = positionInfo.toLowerCase();
     
     // Helper function to create position result object
-    const createPositionResult = (x, y, rotation, isNearAirport) => {
-        return { valid: true, x: x, y: y, rotation: rotation, isNearAirport: isNearAirport };
+    const createPositionResult = (x, y, rotation, distance = 0, altitude = 0) => {
+        return { valid: true, x: x, y: y, rotation: rotation, distance: distance, altitude: altitude };
     };
+    
+    // Extract distance in miles if mentioned
+    let distance = 0;
+    const distanceMatch = pos.match(/(\d+)\s+miles?/i);
+    if (distanceMatch) {
+        distance = parseInt(distanceMatch[1], 10);
+    }
+    
+    // Extract altitude in feet if mentioned
+    let altitude = 0;
+    const altitudeMatch = pos.match(/(\d+)[,]?(\d+)?\s+feet/i) || pos.match(/(\d+)[,]?(\d+)?\s+ft/i);
+    if (altitudeMatch) {
+        // Handle cases like "1,500 feet" or "1500 feet"
+        if (altitudeMatch[2]) {
+            altitude = parseInt(altitudeMatch[1] + altitudeMatch[2], 10);
+        } else {
+            altitude = parseInt(altitudeMatch[1], 10);
+        }
+    }
     
     // Extract runway number if mentioned
     const runway = extractRunwayNumber(pos);
@@ -285,7 +304,8 @@ function parseAircraftPosition(positionInfo) {
             borderPosition.x,
             borderPosition.y,
             rotation,
-            false // Not near airport 
+            distance, // Include the extracted distance
+            altitude // Include the extracted altitude
         );
     };
     
@@ -339,7 +359,8 @@ function parseAircraftPosition(positionInfo) {
                     42, // Use the exact taxiway x-coordinate from the SVG
                     80, // Bottom position where the runway number is labeled
                     facingMatch ? getExplicitRotation(`facing ${facingMatch[1]}`) : 90, // Default to facing the runway
-                    true // near airport 
+                    0, // Aircraft on ground has distance 0
+                    altitude // Include the extracted altitude
                 );
                 
             default:
@@ -353,7 +374,8 @@ function parseAircraftPosition(positionInfo) {
             position.x,
             position.y,
             rotation,
-            true // near airport
+            0, // Aircraft on ground has distance 0
+            altitude // Include the extracted altitude
         );
     };
     
@@ -388,7 +410,8 @@ function parseAircraftPosition(positionInfo) {
                 position.x,
                 position.y,
                 explicitRotation !== null ? explicitRotation : position.rotation,
-                true // near airport 
+                0, // Aircraft in pattern has distance 0
+                altitude // Include the extracted altitude
             );
         }
     }
@@ -400,7 +423,8 @@ function parseAircraftPosition(positionInfo) {
             position.x,
             position.y,
             explicitRotation !== null ? explicitRotation : position.rotation,
-            true // near airport
+            0, // Aircraft in pattern has distance 0
+            altitude // Include the extracted altitude
         );
     } else if (pos.includes('right base')) {
         const position = airportLocations.pattern.rightBase;
@@ -408,7 +432,8 @@ function parseAircraftPosition(positionInfo) {
             position.x,
             position.y,
             explicitRotation !== null ? explicitRotation : position.rotation,
-            true // near airport
+            0, // Aircraft in pattern has distance 0
+            altitude // Include the extracted altitude
         );
     } else if (pos.includes('right crosswind')) {
         const position = airportLocations.pattern.rightCrosswind;
@@ -416,7 +441,8 @@ function parseAircraftPosition(positionInfo) {
             position.x,
             position.y,
             explicitRotation !== null ? explicitRotation : position.rotation,
-            true // near airport
+            0, // Aircraft in pattern has distance 0
+            altitude // Include the extracted altitude
         );
     }
     
@@ -437,7 +463,8 @@ function parseAircraftPosition(positionInfo) {
             finalPosition.x,
             finalPosition.y,
             rotation,
-            true // near airport
+            0, // Aircraft on final approach has distance 0
+            altitude // Include the extracted altitude
         );
     }
     
@@ -449,7 +476,8 @@ function parseAircraftPosition(positionInfo) {
             departurePosition.x,
             departurePosition.y,
             explicitRotation !== null ? explicitRotation : departurePosition.rotation,
-            true // near airport
+            0, // Aircraft just departed has distance 0
+            altitude // Include the extracted altitude
         );
     }
     
@@ -507,7 +535,8 @@ function parseAircraftPosition(positionInfo) {
                 position.x,
                 position.y,
                 rotation,
-                false // Not on ground
+                distance || 2, // If no specific distance, use 2 miles for approach/departure
+                altitude // Include the extracted altitude
             );
         }
         
@@ -534,7 +563,8 @@ function parseAircraftPosition(positionInfo) {
         randomPosition.x,
         randomPosition.y,
         explicitRotation !== null ? explicitRotation : randomPosition.rotation,
-        false // Not on ground
+        distance || 3, // If no specific distance, use 3 miles for random positions
+        altitude // Include the extracted altitude
     );
 }
 
@@ -582,6 +612,16 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
     
     // Parse the position information to determine aircraft location
     const aircraftPosition = parseAircraftPosition(positionInfo);
+    
+    // Calculate scale factor based on distance
+    let scaleFactor = 1;
+    if (aircraftPosition.distance > 0) {
+        // Scale down for each mile, with a minimum of 10%
+        scaleFactor = Math.max(0.1, Math.pow(0.90, aircraftPosition.distance-1));
+    } else {
+        scaleFactor = 1.25;
+    }
+
     
     // Set colors based on the current theme
     const isDarkMode = document.body.classList.contains('dark');
@@ -679,7 +719,7 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
             <!-- SVG container for the entire diagram -->
             <svg id="airport-svg" width="100%" height="100%" viewBox="0 0 100 100" style="position:absolute; top:0; left:0; width:100%; height:100%;">
                 <!-- Airport elements group - occupying the middle 60% of the SVG -->
-                <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50)">
+                <g id="airport-elements" transform="rotate(${airportRotation}, 50, 50) translate(50, 50) scale(${scaleFactor}) translate(-50, -50)">
                     ${runwaySuffix === 'L' || runwaySuffix === 'R' ? `
                     <!-- Parallel runways for L/R runways -->
                     <!-- First runway (standard position) -->
@@ -738,7 +778,7 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     <rect x="37" y="55" width="6" height="14" fill="${rampColor}" rx="1" ry="1" />
                     
                     <!-- Aircraft on ground is rendered inside the airport-elements group to rotate with the airport -->
-                    ${aircraftPosition.valid && aircraftPosition.isNearAirport ? `
+                    ${aircraftPosition.valid && aircraftPosition.distance <= 1.0 ? `
                     <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
                         <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                     </g>
@@ -746,11 +786,21 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 </g>
                 
                 <!-- Aircraft in the air is rendered separately to maintain absolute positioning -->
-                ${aircraftPosition.valid && !aircraftPosition.isNearAirport ? `
-                <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
-                    <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                ${aircraftPosition.valid && aircraftPosition.distance > 1.0 ? `
+                <g class="aircraft-icon">
+                    <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
+                        <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                    </g>
+                    ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
+                    <text x="${aircraftPosition.x + 5}" y="${aircraftPosition.y - 5}" fill="${textColor}" font-size="2.5" text-anchor="start" dominant-baseline="middle">
+                        ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance} mi` : ''}
+                        ${aircraftPosition.altitude > 0 ? `${aircraftPosition.distance > 0 ? ', ' : ''}${aircraftPosition.altitude} ft` : ''}
+                    </text>
+                    ` : ''}
                 </g>
                 ` : ''}
+                
+                <!-- Remove the distance indicator from the top corner since it's now near the aircraft -->
             </svg>
         </div>
     `;
