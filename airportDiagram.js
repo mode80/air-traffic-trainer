@@ -763,24 +763,24 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     
                     <!-- First runway labels -->
                     <g transform="translate(50, 78) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${(activeRunway + runwaySuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${activeRunway}${runwaySuffix}
                         </text>
                     </g>
                     <g transform="translate(50, 22) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${(oppositeRunway + oppositeSuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${oppositeSuffix}
                         </text>
                     </g>
                     
                     <!-- Second runway labels -->
                     <g transform="translate(60, 78) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${(activeRunway + oppositeSuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${activeRunway}${oppositeSuffix}
                         </text>
                     </g>
                     <g transform="translate(60, 22) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${(oppositeRunway + runwaySuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${oppositeRunway}${runwaySuffix}
                         </text>
                     </g>
@@ -790,12 +790,12 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     
                     <!-- Runway labels -->
                     <g transform="translate(50, 78) rotate(${airportRotation}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${((activeRunway ? activeRunway : '36') + runwaySuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${activeRunway ? activeRunway : '36'}${runwaySuffix}
                         </text>
                     </g>
                     <g transform="translate(50, 22) rotate(${airportRotation + 180}, 0, 0)">
-                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="4" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
+                        <text x="0" y="0" fill="${runwayNumberColor}" font-size="${((oppositeRunway ? oppositeRunway : '18') + oppositeSuffix).length >= 3 ? 2.7 : 4}" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-family="'Courier New', monospace" transform="rotate(-${airportRotation})">
                             ${oppositeRunway ? oppositeRunway : '18'}${oppositeSuffix}
                         </text>
                     </g>
@@ -817,12 +817,15 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                         <g class="aircraft-pulse">
                             <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                         </g>
-                        ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
-                        <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                    </g>
+                    ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
+                    <!-- Position text always right side up, positioned below aircraft -->
+                    <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y + 8})">
+                        <text x="0" y="0" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
                         </text>
-                        ` : ''}
                     </g>
+                    ` : ''}
                     ` : ''}
                 </g>
                 
@@ -833,12 +836,15 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                         <g class="aircraft-pulse">
                             <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
                         </g>
-                        ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
-                        <text x="0" y="5" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                    </g>
+                    ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
+                    <!-- Position text always right side up, positioned below aircraft -->
+                    <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y + 8})">
+                        <text x="0" y="0" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle">
                             ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
                         </text>
-                        ` : ''}
                     </g>
+                    ` : ''}
                 </g>
                 ` : ''}
                 
