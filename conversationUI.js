@@ -32,15 +32,8 @@ class ConversationUI {
             interactionMessages.classList.add('hidden');
         }
         
-        // Get the current scenario
-        const currentScenario = window.scenarioManager.getCurrentScenario();
-        if (!currentScenario) return;
-        
-        // If the scenario has an initial ATC call, display it
-        if (currentScenario.atcCall) {
-            // Use a special version of addATCMessage that doesn't auto-play on initial load
-            this.addInitialATCMessage(currentScenario.atcCall);
-        }
+        // Note: We don't add the initial ATC message here anymore
+        // The EvaluationManager.initializeInteraction method will handle this
     }
     
     // Add an initial ATC message to the conversation without auto-playing

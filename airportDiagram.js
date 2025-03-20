@@ -799,6 +799,11 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                     ${aircraftPosition.valid && aircraftPosition.distance <= 1.0 ? `
                     <g class="aircraft-icon" transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
                         <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
+                        <text x="0" y="3" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                            ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
+                        </text>
+                        ` : ''}
                     </g>
                     ` : ''}
                 </g>
@@ -808,13 +813,12 @@ function generateAirportDiagram(container, isTowered, positionInfo = '', weather
                 <g class="aircraft-icon">
                     <g transform="translate(${aircraftPosition.x}, ${aircraftPosition.y}) rotate(${aircraftPosition.rotation})">
                         <polygon points="0,-4 -3,4 0,2 3,4" fill="${aircraftColor}" stroke="black" stroke-width="0.5" />
+                        ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
+                        <text x="0" y="3" fill="${textColor}" font-size="2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-${aircraftPosition.rotation})">
+                            ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance}mi` : ''}${aircraftPosition.altitude > 0 ? ` ${aircraftPosition.altitude}ft` : ''}
+                        </text>
+                        ` : ''}
                     </g>
-                    ${(aircraftPosition.distance > 0 || aircraftPosition.altitude > 0) ? `
-                    <text x="${aircraftPosition.x + 5}" y="${aircraftPosition.y - 5}" fill="${textColor}" font-size="2.5" text-anchor="start" dominant-baseline="middle">
-                        ${aircraftPosition.distance > 0 ? `${aircraftPosition.distance} mi` : ''}
-                        ${aircraftPosition.altitude > 0 ? `${aircraftPosition.distance > 0 ? ', ' : ''}${aircraftPosition.altitude} ft` : ''}
-                    </text>
-                    ` : ''}
                 </g>
                 ` : ''}
                 
