@@ -257,7 +257,8 @@ function parseAircraftPosition(positionInfo) {
                           
         const isOutbound = context.includes('outbound') || 
                            context.includes('departing') || 
-                           context.includes('takeoff');
+                           context.includes('takeoff') ||
+                           context.includes('climbing');
         
         // If runway is specified, use it to determine direction
         if (runway) {
