@@ -257,12 +257,13 @@ class EvaluationManager {
         this.submitResponseBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
         this.submitResponseBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
         
-        // Now evaluate the new response
-        await this.evaluateResponse(text, audioBlob !== null, audioBlob);
+        // Now evaluate the new response and continue the conversation from this point
+        // Pass true for isEditedResponse to indicate this is a corrected message
+        await this.evaluateResponse(text, audioBlob !== null, audioBlob, true);
     }
     
     // Evaluate user response using OpenAI's GPT-4o model
-    async evaluateResponse(responseText, isAudio = false, audioBlob = null) {
+    async evaluateResponse(responseText, isAudio = false, audioBlob = null, isEditedResponse = false) {
         if (!responseText || responseText.trim() === '') {
             window.showToast('Please provide a radio communication before submitting', true);
             return;
@@ -302,12 +303,25 @@ class EvaluationManager {
             }
             
             // Generate the evaluation prompt
-            const prompt = window.EvaluationPrompt.generatePrompt(
-                currentScenario, 
-                this.conversationHistory, 
-                responseText, 
-                isAudio
-            );
+            // If this is an edited response, add a note to generate a new response
+            let prompt;
+            if (isEditedResponse) {
+                // Create a custom prompt for edited responses
+                prompt = window.EvaluationPrompt.generatePrompt(
+                    currentScenario, 
+                    this.conversationHistory,
+                    responseText, 
+                    isAudio,
+                    true // Add flag for edited response
+                );
+            } else {
+                prompt = window.EvaluationPrompt.generatePrompt(
+                    currentScenario, 
+                    this.conversationHistory,
+                    responseText, 
+                    isAudio
+                );
+            }
             
             // Call the OpenAI API
             const feedbackData = await window.ApiService.callOpenAI(prompt);

@@ -8,9 +8,10 @@ class EvaluationPrompt {
      * @param {Array} conversationHistory - Array of conversation messages
      * @param {String} responseText - The pilot's response to evaluate
      * @param {Boolean} isAudio - Whether the response was from audio recording
+     * @param {Boolean} isEditedResponse - Whether this is an edited response
      * @returns {String} - The formatted prompt for OpenAI
      */
-    static generatePrompt(scenario, conversationHistory, responseText, isAudio = false) {
+    static generatePrompt(scenario, conversationHistory, responseText, isAudio = false, isEditedResponse = false) {
         // Build weather information for prompt
         const weatherBlock = scenario.weatherInfo && scenario.weatherInfo.trim() !== '' ? 
             `\nWeather Information:\n${scenario.weatherInfo}` : '';
@@ -19,6 +20,11 @@ class EvaluationPrompt {
         const sourceInfo = isAudio ? 
             `\nNote: This response was provided via audio recording and then transcribed.` : 
             `\nNote: This response was typed directly by the user.`;
+        
+        // Add edited response information if applicable
+        const editedInfo = isEditedResponse ? 
+            `\nNote: This is a corrected response. Generate a new appropriate ATC response that continues the conversation forward from this point.` : 
+            '';
         
         // Build conversation history for context
         let conversationContext = '';
@@ -42,7 +48,7 @@ ${scenario.description}${conversationContext}${weatherBlock}
 Flight Info:
 - Aircraft: ${scenario.aircraft}
 - Tail Number: ${scenario.tailNumber}
-- Airport: ${scenario.airport}${sourceInfo}
+- Airport: ${scenario.airport}${sourceInfo}${editedInfo}
 
 Pilot's actual radio call (ONLY EVALUATE THIS SPECIFIC TRANSMISSION):
 "${responseText}"
@@ -78,6 +84,8 @@ Please evaluate ONLY THE MOST RECENT pilot radio call and provide:
 4. The ATC's response to this specific transmission (if applicable)
 5. Whether this communication concludes the conversation (true/false)
 6. 100% is an appropriate grade when there is no opportunity for improvement
+
+${isEditedResponse ? 'IMPORTANT: Since this is a corrected response, provide a NEW and DIFFERENT ATC response that continues the conversation forward naturally from this point. Do not repeat previous ATC responses.' : ''}
 
 Format your response as valid JSON that can be parsed by JavaScript's JSON.parse():
 {
