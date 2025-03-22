@@ -263,11 +263,9 @@ function parseAircraftPosition(positionInfo) {
         if (runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
             
-            if (isInbound) { // Aircraft approaching runway 27 should be heading west (270 degrees)
-                return ((runwayNum * 10) + 180) % 360;
-            } else if (isOutbound) { // Aircraft departing runway 27 should be heading west (270 degrees)
-                return (runwayNum * 10) % 360;
-            }
+            // Both approaching and departing aircraft should use the runway heading
+            // Runway 27 = 270 degrees (west) for both landing and takeoff
+            return (runwayNum * 10) % 360;
         }
         
         // If no runway specified, use the default rotation based on position
@@ -463,7 +461,7 @@ function parseAircraftPosition(positionInfo) {
         
         if (rotation === null && runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-            rotation = ((runwayNum * 10) + 180) % 360;  // Approach from opposite direction
+            rotation = (runwayNum * 10) % 360;  // Approach in the same direction as the runway
         } else if (rotation === null) {
             rotation = finalPosition.rotation;
         }
@@ -526,7 +524,7 @@ function parseAircraftPosition(positionInfo) {
             
             // Calculate heading based on whether approaching or departing
             const heading = isApproaching 
-                ? (runwayNum * 10 + 180) % 360  // Approach from opposite direction
+                ? (runwayNum * 10) % 360  // Approach in the same direction as the runway
                 : (runwayNum * 10) % 360;       // Depart in runway direction
             
             // Map the heading to a cardinal direction
@@ -545,7 +543,7 @@ function parseAircraftPosition(positionInfo) {
                 const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
                 
                 rotation = isApproaching 
-                    ? ((runwayNum * 10) + 180) % 360  // Approach from opposite direction
+                    ? (runwayNum * 10) % 360  // Approach in the same direction as the runway
                     : (runwayNum * 10) % 360;         // Depart in runway direction
             } else if (rotation === null) {
                 // Use the default rotation for this direction
