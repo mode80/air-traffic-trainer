@@ -59,19 +59,20 @@ IMPORTANT EVALUATION GUIDELINES:
    - Airport name instead of identifier when commonly used (e.g., "Half Moon traffic" vs "KHAF traffic")
 
 2. Strongly favor spelled-out aviation numeric phraseology over digits:
-   - Give higher scores when pilots use "one one niner point five" rather than "119.5"
-   - Reward proper aviation number pronunciation (e.g., "niner" for 9, "tree" for 3, "fife" for 5)
+   - Reward proper aviation number pronunciation (e.g., "niner" for 9)
    - Prefer "three thousand five hundred" over "3,500"
    - Expect headings to be spoken as individual digits (e.g., "heading zero niner zero" not "heading ninety")
-   - Expect altitudes as thousands and hundreds (e.g., "six thousand five hundred" not "six five zero zero")
+   - Expect altitudes as thousands and hundreds (e.g., "six thousand five hundred" not "six five zero zero" and not "sixty five hundred")
    - Expect frequencies to be spoken with "point" or "decimal" (e.g., "one one niner point eight")
 
 3. Focus only on content that matters in verbal communications:
-   - IGNORE capitalization, punctuation, and spelling or typos in the evaluation
+   - IGNORE capitalization, punctuation, and typos in the evaluation
    - Focus on whether the essential information is communicated
    - Consider whether the communication would be clear to ATC or other pilots
+   - "November" is optional for tail numbers
+   - Be lenient to the possibility that Text-to-Speech may have introduced "similar sounding words" to what the pilot actually said. 
 
-4. Be lenient on word order when all required information is present and the meaning is clear.
+4. Be lenient on word order when all required information is present and the meaning is clear. 
 
 5. Conversation Completion Guidelines: 
    - Mark the conversation as complete when the exchange has reached a natural conclusion

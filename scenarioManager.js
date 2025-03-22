@@ -685,6 +685,7 @@ Important requirements:
 5. Always include weatherInfo when relevant (or empty string if not)
 6. Choose appropriate aircraft types and real airports across the United States
 7. Use proper aviation terminology and phraseology
+7.1 correctResponse should have numbers written out in aviation digit pronounciation -- e.g. "runway one niner" instead of "runway 19", and "one one thousand feet" instead of "11,000 feet" 
 8. ALWAYS include every field in the JSON object above (description, position, atcCall, aircraft, tailNumber, airport, isTowered, weatherInfo, correctResponse) 
 9. The generated scenario should be realistic, and educational
 
