@@ -442,7 +442,7 @@ class AudioRecorder {
             formData.append('file', processedBlob, fileName);
             formData.append('model', 'whisper-1');
             formData.append('language', 'en');
-            formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology');
+            formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology. Preserve all spelled-out numbers exactly as spoken (e.g. "one two tree" should not be converted to "123"). Aviation communications require numbers to be spoken individually.');
             
             // Call OpenAI API
             const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
