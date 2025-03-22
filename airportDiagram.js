@@ -92,26 +92,45 @@ Object.entries(DIRECTIONS).forEach(([direction, { angle }]) => {
  * @returns {string|null} - Direction or null if not found
  */
 const detectDirection = (text) => {
-    // First check for exact direction matches
-    for (const dir of Object.keys(DIRECTIONS)) {
-        if (text.includes(dir)) {
-            return dir;
+    // Log what we're trying to detect
+    console.log("Detecting direction in:", text);
+    
+    // Create a comprehensive list of directional patterns to check
+    const directionalPatterns = [
+        // Simple directional terms
+        ...Object.keys(DIRECTIONS).map(dir => ({
+            pattern: new RegExp(`\\b${dir}\\b`, 'i'),
+            direction: dir
+        })),
+        
+        // Directional terms with "bound" suffix
+        ...Object.keys(DIRECTIONS).map(dir => ({
+            pattern: new RegExp(`\\b${dir}bound\\b`, 'i'),
+            direction: dir
+        })),
+        
+        // Directional terms with "bound" suffix (with space)
+        ...Object.keys(DIRECTIONS).map(dir => ({
+            pattern: new RegExp(`\\b${dir} bound\\b`, 'i'),
+            direction: dir
+        })),
+        
+        // Directional terms with "of" suffix (e.g., "north of")
+        ...Object.keys(DIRECTIONS).map(dir => ({
+            pattern: new RegExp(`\\b${dir} of\\b`, 'i'),
+            direction: dir
+        }))
+    ];
+    
+    // Check each pattern against the text
+    for (const { pattern, direction } of directionalPatterns) {
+        if (pattern.test(text)) {
+            console.log(`Detected direction: ${direction} using pattern: ${pattern}`);
+            return direction;
         }
     }
     
-    // Then check for directional terms with "bound" suffix
-    const boundDirections = {};
-    Object.keys(DIRECTIONS).forEach(dir => {
-        boundDirections[`${dir}bound`] = dir;
-        boundDirections[`${dir} bound`] = dir;
-    });
-    
-    for (const [bound, dir] of Object.entries(boundDirections)) {
-        if (text.includes(bound)) {
-            return dir;
-        }
-    }
-    
+    console.log("No direction detected");
     return null;
 };
 
@@ -216,6 +235,9 @@ function parseAircraftPosition(positionInfo) {
     // Convert to lowercase for case-insensitive matching
     const pos = positionInfo.toLowerCase();
     
+    // Debug log to see what we're parsing
+    console.log("Parsing position:", positionInfo);
+    
     // Helper function to create position result object
     const createPositionResult = (x, y, rotation, distance = 0, altitude = 0) => {
         return { valid: true, x: x, y: y, rotation: rotation, distance: distance, altitude: altitude };
@@ -246,6 +268,10 @@ function parseAircraftPosition(positionInfo) {
     // Get explicit rotation from direction keywords - only for airborne aircraft
     const explicitRotation = getExplicitRotation(pos);
     
+    // Extract directional information early
+    const direction = detectDirection(pos);
+    console.log("Extracted direction:", direction);
+    
     /**
      * Helper function to determine rotation based on context and runway
      * @param {string} direction - Cardinal direction
@@ -255,8 +281,13 @@ function parseAircraftPosition(positionInfo) {
      * @returns {number} - Calculated rotation in degrees
      */
     const determineRotation = (direction, context, runway, explicitRot) => {
-        if (explicitRot !== null) return explicitRot;
+        // If explicit rotation is provided, use it
+        if (explicitRot !== null) {
+            console.log(`Using explicit rotation: ${explicitRot}°`);
+            return explicitRot;
+        }
         
+        // Check if the context indicates inbound or outbound
         const isInbound = context.includes('inbound') || 
                           context.includes('approaching') || 
                           context.includes('landing') || 
@@ -281,11 +312,23 @@ function parseAircraftPosition(positionInfo) {
         
         // If no runway specified, use the default rotation based on position
         if (isInbound) {
-            return getInboundRotation(direction);
+            const inboundRotation = getInboundRotation(direction);
+            console.log(`Using inbound rotation for ${direction}: ${inboundRotation}°`);
+            return inboundRotation;
         } else if (isOutbound) {
-            return getOutboundRotation(direction);
+            const outboundRotation = getOutboundRotation(direction);
+            console.log(`Using outbound rotation for ${direction}: ${outboundRotation}°`);
+            return outboundRotation;
         }
         
+        // For directional positions without inbound/outbound context, face toward the airport
+        if (direction && DIRECTIONS[direction]) {
+            const defaultRotation = (DIRECTIONS[direction].angle + 180) % 360;
+            console.log(`Using default directional rotation for ${direction}: ${defaultRotation}°`);
+            return defaultRotation;
+        }
+        
+        console.log("Using fallback rotation: 0°");
         return 0; // Default rotation
     };
     
@@ -295,6 +338,17 @@ function parseAircraftPosition(positionInfo) {
      * @returns {Object} - Position result object
      */
     const handleDirectionalPosition = (direction) => {
+        // Validate the direction is one we recognize
+        if (!DIRECTIONS[direction]) {
+            console.log(`Unknown direction: ${direction}, using default position`);
+            return createPositionResult(
+                50, 50, // Center of the diagram
+                0,
+                distance || 2,
+                altitude
+            );
+        }
+        
         // Get border position based on direction
         const borderPosition = airportLocations.borderPositions[direction] || { x: 50, y: 50 };
         
@@ -302,7 +356,7 @@ function parseAircraftPosition(positionInfo) {
         const rotation = determineRotation(direction, pos, runway, explicitRotation);
         
         // Log for debugging
-        console.log(`Positioning aircraft at ${direction} position: (${borderPosition.x}, ${borderPosition.y})`);
+        console.log(`Positioning aircraft at ${direction} position: (${borderPosition.x}, ${borderPosition.y}) with rotation ${rotation}°`);
         
         return createPositionResult(
             borderPosition.x,
@@ -313,24 +367,18 @@ function parseAircraftPosition(positionInfo) {
         );
     };
     
-    // Check for positions like "X miles [direction]"
-    const milesDirectionMatch = pos.match(/(\d+)\s+miles?\s+(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-    if (milesDirectionMatch) {
-        const direction = milesDirectionMatch[2].toLowerCase();
-        return handleDirectionalPosition(direction);
-    }
-    
-    // Check for directional position relative to airport (e.g., "north of", "west of")
-    const directionalMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)\s+of/i);
-    if (directionalMatch) {
-        const direction = directionalMatch[1].toLowerCase();
-        return handleDirectionalPosition(direction);
-    }
-    
-    // Check for directional position with airport name (e.g., "southwest of Austin-Bergstrom")
-    const airportDirectionalMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)\s+of\s+[\w\s-]+/i);
-    if (airportDirectionalMatch) {
-        const direction = airportDirectionalMatch[1].toLowerCase();
+    // Check for positions with directional information
+    if (direction) {
+        // Check if it's a specific distance and direction
+        const milesDirectionMatch = pos.match(/(\d+)\s+miles?/i);
+        if (milesDirectionMatch) {
+            console.log("Position includes miles and direction");
+            const miles = parseInt(milesDirectionMatch[1], 10);
+            // Update the distance variable for use in the position result
+            distance = miles;
+        }
+        
+        // Use the handleDirectionalPosition helper with the detected direction
         return handleDirectionalPosition(direction);
     }
     
@@ -568,13 +616,6 @@ function parseAircraftPosition(positionInfo) {
     };
     
     // Default position - pick a random position away from the airport
-    // If we have a direction in the text but didn't match earlier patterns, try to extract it now
-    const anyDirectionMatch = pos.match(/(north|south|east|west|northeast|northwest|southeast|southwest)/i);
-    if (anyDirectionMatch) {
-        const direction = anyDirectionMatch[1].toLowerCase();
-        return handleDirectionalPosition(direction);
-    }
-    
     const randomIndex = Math.floor(Math.random() * airportLocations.away.length);
     const randomPosition = airportLocations.away[randomIndex];
     
