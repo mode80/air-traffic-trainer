@@ -92,45 +92,23 @@ Object.entries(DIRECTIONS).forEach(([direction, { angle }]) => {
  * @returns {string|null} - Direction or null if not found
  */
 const detectDirection = (text) => {
-    // Log what we're trying to detect
-    console.log("Detecting direction in:", text);
-    
     // Create a comprehensive list of directional patterns to check
     const directionalPatterns = [
         // Simple directional terms
-        ...Object.keys(DIRECTIONS).map(dir => ({
-            pattern: new RegExp(`\\b${dir}\\b`, 'i'),
-            direction: dir
-        })),
-        
+        ...Object.keys(DIRECTIONS).map(dir => ({ pattern: new RegExp(`\\b${dir}\\b`, 'i'), direction: dir })),
         // Directional terms with "bound" suffix
-        ...Object.keys(DIRECTIONS).map(dir => ({
-            pattern: new RegExp(`\\b${dir}bound\\b`, 'i'),
-            direction: dir
-        })),
-        
+        ...Object.keys(DIRECTIONS).map(dir => ({ pattern: new RegExp(`\\b${dir}bound\\b`, 'i'), direction: dir })),
         // Directional terms with "bound" suffix (with space)
-        ...Object.keys(DIRECTIONS).map(dir => ({
-            pattern: new RegExp(`\\b${dir} bound\\b`, 'i'),
-            direction: dir
-        })),
-        
+        ...Object.keys(DIRECTIONS).map(dir => ({ pattern: new RegExp(`\\b${dir} bound\\b`, 'i'), direction: dir })),
         // Directional terms with "of" suffix (e.g., "north of")
-        ...Object.keys(DIRECTIONS).map(dir => ({
-            pattern: new RegExp(`\\b${dir} of\\b`, 'i'),
-            direction: dir
-        }))
+        ...Object.keys(DIRECTIONS).map(dir => ({ pattern: new RegExp(`\\b${dir} of\\b`, 'i'), direction: dir }))
     ];
     
     // Check each pattern against the text
     for (const { pattern, direction } of directionalPatterns) {
-        if (pattern.test(text)) {
-            console.log(`Detected direction: ${direction} using pattern: ${pattern}`);
-            return direction;
-        }
+        if (pattern.test(text)) { return direction; }
     }
     
-    console.log("No direction detected");
     return null;
 };
 
@@ -173,9 +151,7 @@ const getExplicitRotation = (text) => {
     
     // Check for bound directions first
     for (const [bound, rot] of Object.entries(boundRotationMap)) {
-        if (text.includes(bound)) {
-            return rot;
-        }
+        if (text.includes(bound)) { return rot; }
     }
     
     // Check for explicit direction phrases with prefixes like "facing" or "heading"
@@ -235,9 +211,6 @@ function parseAircraftPosition(positionInfo) {
     // Convert to lowercase for case-insensitive matching
     const pos = positionInfo.toLowerCase();
     
-    // Debug log to see what we're parsing
-    console.log("Parsing position:", positionInfo);
-    
     // Helper function to create position result object
     const createPositionResult = (x, y, rotation, distance = 0, altitude = 0) => {
         return { valid: true, x: x, y: y, rotation: rotation, distance: distance, altitude: altitude };
@@ -246,21 +219,12 @@ function parseAircraftPosition(positionInfo) {
     // Extract distance in miles if mentioned
     let distance = 0;
     const distanceMatch = pos.match(/(\d+)\s+miles?/i);
-    if (distanceMatch) {
-        distance = parseInt(distanceMatch[1], 10);
-    }
+    if (distanceMatch) { distance = parseInt(distanceMatch[1], 10); }
     
     // Extract altitude in feet if mentioned
     let altitude = 0;
     const altitudeMatch = pos.match(/(\d+)[,]?(\d+)?\s+feet/i) || pos.match(/(\d+)[,]?(\d+)?\s+ft/i);
-    if (altitudeMatch) {
-        // Handle cases like "1,500 feet" or "1500 feet"
-        if (altitudeMatch[2]) {
-            altitude = parseInt(altitudeMatch[1] + altitudeMatch[2], 10);
-        } else {
-            altitude = parseInt(altitudeMatch[1], 10);
-        }
-    }
+    if (altitudeMatch) { altitude = parseInt(altitudeMatch[1] + (altitudeMatch[2] || ''), 10); }
     
     // Extract runway number if mentioned
     const runway = extractRunwayNumber(pos);
@@ -270,7 +234,6 @@ function parseAircraftPosition(positionInfo) {
     
     // Extract directional information early
     const direction = detectDirection(pos);
-    console.log("Extracted direction:", direction);
     
     /**
      * Helper function to determine rotation based on context and runway
@@ -283,7 +246,6 @@ function parseAircraftPosition(positionInfo) {
     const determineRotation = (direction, context, runway, explicitRot) => {
         // If explicit rotation is provided, use it
         if (explicitRot !== null) {
-            console.log(`Using explicit rotation: ${explicitRot}°`);
             return explicitRot;
         }
         
@@ -301,11 +263,9 @@ function parseAircraftPosition(positionInfo) {
         if (runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
             
-            if (isInbound) {
-                // Aircraft approaching runway 27 should be heading west (270 degrees)
+            if (isInbound) { // Aircraft approaching runway 27 should be heading west (270 degrees)
                 return ((runwayNum * 10) + 180) % 360;
-            } else if (isOutbound) {
-                // Aircraft departing runway 27 should be heading west (270 degrees)
+            } else if (isOutbound) { // Aircraft departing runway 27 should be heading west (270 degrees)
                 return (runwayNum * 10) % 360;
             }
         }
@@ -313,22 +273,18 @@ function parseAircraftPosition(positionInfo) {
         // If no runway specified, use the default rotation based on position
         if (isInbound) {
             const inboundRotation = getInboundRotation(direction);
-            console.log(`Using inbound rotation for ${direction}: ${inboundRotation}°`);
             return inboundRotation;
         } else if (isOutbound) {
             const outboundRotation = getOutboundRotation(direction);
-            console.log(`Using outbound rotation for ${direction}: ${outboundRotation}°`);
             return outboundRotation;
         }
         
         // For directional positions without inbound/outbound context, face toward the airport
         if (direction && DIRECTIONS[direction]) {
             const defaultRotation = (DIRECTIONS[direction].angle + 180) % 360;
-            console.log(`Using default directional rotation for ${direction}: ${defaultRotation}°`);
             return defaultRotation;
         }
         
-        console.log("Using fallback rotation: 0°");
         return 0; // Default rotation
     };
     
@@ -340,7 +296,6 @@ function parseAircraftPosition(positionInfo) {
     const handleDirectionalPosition = (direction) => {
         // Validate the direction is one we recognize
         if (!DIRECTIONS[direction]) {
-            console.log(`Unknown direction: ${direction}, using default position`);
             return createPositionResult(
                 50, 50, // Center of the diagram
                 0,
@@ -354,9 +309,6 @@ function parseAircraftPosition(positionInfo) {
         
         // Calculate rotation based on context
         const rotation = determineRotation(direction, pos, runway, explicitRotation);
-        
-        // Log for debugging
-        console.log(`Positioning aircraft at ${direction} position: (${borderPosition.x}, ${borderPosition.y}) with rotation ${rotation}°`);
         
         return createPositionResult(
             borderPosition.x,
@@ -372,9 +324,7 @@ function parseAircraftPosition(positionInfo) {
         // Check if it's a specific distance and direction
         const milesDirectionMatch = pos.match(/(\d+)\s+miles?/i);
         if (milesDirectionMatch) {
-            console.log("Position includes miles and direction");
             const miles = parseInt(milesDirectionMatch[1], 10);
-            // Update the distance variable for use in the position result
             distance = miles;
         }
         
@@ -513,7 +463,6 @@ function parseAircraftPosition(positionInfo) {
         
         if (rotation === null && runway) {
             const runwayNum = parseInt(runway.replace(/[LRC]/g, ''), 10);
-            
             rotation = ((runwayNum * 10) + 180) % 360;  // Approach from opposite direction
         } else if (rotation === null) {
             rotation = finalPosition.rotation;
