@@ -159,97 +159,69 @@ class AudioRecorder {
     // Initialize audio recording with a given stream
     initAudioRecording(stream) {
         try {
-            // Create media recorder with MIME types that OpenAI supports
-            // Options in order of preference: mp3, m4a, wav, or webm
-            const mimeTypes = [
-                'audio/mp3',
-                'audio/mpeg',
-                'audio/m4a',
-                'audio/wav',
-                'audio/webm'
-            ];
-            
-            // Find the first supported MIME type
-            let mimeType = '';
-            
-            // Special handling for Safari
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-            if (isSafari) {
-                // Safari works best with these formats for OpenAI compatibility
-                if (MediaRecorder.isTypeSupported('audio/mp3')) {
-                    mimeType = 'audio/mp3';
-                } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-                    mimeType = 'audio/wav';
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    mimeType = 'audio/mp4';
-                } else if (MediaRecorder.isTypeSupported('audio/aac')) {
-                    mimeType = 'audio/aac'; // Safari often supports AAC
-                }
-                // If we still don't have a supported type, try the default
-                if (!mimeType) {
-                    console.log('No supported MIME types found for Safari, using default');
-                }
-            } else {
-                // For other browsers, use the standard approach
-                for (const type of mimeTypes) {
-                    if (MediaRecorder.isTypeSupported(type)) {
-                        mimeType = type;
-                        break;
-                    }
+            // Create media recorder with MIME types that Groq supports
+            const options = { mimeType: 'audio/webm' };
+            this.mediaRecorder = new MediaRecorder(stream, options);
+        } catch (e1) {
+            console.error(`Error creating MediaRecorder with options ${JSON.stringify(options)}: ${e1}`);
+            try {
+                // Safari works best with these formats for Groq compatibility
+                const options = { mimeType: 'audio/mp4' };
+                this.mediaRecorder = new MediaRecorder(stream, options);
+            } catch (e2) {
+                console.error(`Error creating MediaRecorder with options ${JSON.stringify(options)}: ${e2}`);
+                try {
+                    // For Safari, explicitly set the MIME type to ensure compatibility with Groq
+                    this.mediaRecorder = new MediaRecorder(stream);
+                } catch (e3) {
+                    console.error(`Error creating MediaRecorder without options: ${e3}`);
+                    window.showToast('Recording not supported in this browser', true);
+                    return;
                 }
             }
-            
-            // Fallback to default if none are supported
-            if (!mimeType) {
-                console.log("None of the preferred MIME types are supported, using default format");
-                this.mediaRecorder = new MediaRecorder(stream);
-            } else {
-                console.log(`Using MIME type: ${mimeType}`);
-                this.mediaRecorder = new MediaRecorder(stream, { mimeType });
-            }
-            
-            // Set up event handlers
-            this.mediaRecorder.onstart = () => {
-                this.audioChunks = [];
-                this.isRecording = true;
-                this.updateRecordingUI(true);
-            };
-            
-            this.mediaRecorder.ondataavailable = (event) => {
-                this.audioChunks.push(event.data);
-            };
-            
-            this.mediaRecorder.onstop = async () => {
-                this.isRecording = false;
-                this.updateRecordingUI(false);
-                
-                // Create audio blob with explicit type for better compatibility
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-                let blobOptions = {};
-                
-                // For Safari, explicitly set the MIME type to ensure compatibility with OpenAI
-                if (isSafari) {
-                    blobOptions = { type: 'audio/mp3' }; // OpenAI supports mp3
-                }
-                
-                this.audioBlob = new Blob(this.audioChunks, blobOptions);
-                
-                this.audioURL = URL.createObjectURL(this.audioBlob);
-                
-                // Hide recording indicator
-                this.recordingIndicator.classList.add('hidden');
-                
-                // Transcribe the audio using OpenAI's Speech-to-Text API
-                await this.transcribeAudio(this.audioBlob);
-            };
-            
-            // Enable record button
-            this.recordBtn.disabled = false;
-            
-        } catch (err) {
-            console.error("Error initializing audio recording:", err);
-            window.showToast('Error initializing audio recording', true);
         }
+        
+        // Set up event handlers
+        this.mediaRecorder.onstart = () => {
+            this.audioChunks = [];
+            this.isRecording = true;
+            this.updateRecordingUI(true);
+        };
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+            this.audioChunks.push(event.data);
+        };
+        
+        this.mediaRecorder.onstop = () => {
+            console.log('Recording stopped');
+            
+            // Create audio blob
+            let blobOptions = { type: this.mediaRecorder.mimeType };
+            
+            // Handle Safari which may not set mimeType correctly
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            if (isSafari && (!this.mediaRecorder.mimeType || this.mediaRecorder.mimeType === '')) {
+                blobOptions = { type: 'audio/mp3' }; // Groq supports mp3
+            }
+            
+            this.audioBlob = new Blob(this.audioChunks, blobOptions);
+            this.audioURL = URL.createObjectURL(this.audioBlob);
+            
+            // Reset chunks for next recording
+            this.audioChunks = [];
+            
+            // Update UI
+            this.updateRecordingUI(false);
+            
+            // Transcribe audio
+            this.transcribeAudio(this.audioBlob);
+        };
+        
+        // Enable record button
+        this.recordBtn.disabled = false;
+    } catch (err) {
+        console.error("Error initializing audio recording:", err);
+        window.showToast('Error initializing audio recording', true);
     }
     
     // Update UI during recording
@@ -359,36 +331,26 @@ class AudioRecorder {
         this.currentPlayingAudio = audio;
         
         // Play the audio
-        audio.play()
-            .then(() => {
-                window.showToast('Playing your recorded response...', false);
-            })
-            .catch(err => {
-                console.error('Error playing audio:', err);
-                window.showToast('Failed to play audio', true);
-            });
+        audio.play();
+        window.showToast('Playing your recorded response...', false);
+        audio.onerror = (err) => {
+            console.error('Error playing audio:', err);
+            window.showToast('Failed to play audio', true);
+        };
     }
     
-    // Helper method to ensure audio blob is in a format supported by OpenAI
+    // Helper method to ensure audio blob is in a format supported by Groq
     ensureSupportedAudioFormat(audioBlob) {
-        // Check if we're on Safari
         const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         
-        // If we're not on Safari or the format is already supported, return as is
-        if (!isSafari || (audioBlob.type && window.isOpenAISupportedFormat(audioBlob.type))) {
-            return {
-                blob: audioBlob,
-                extension: this.getFileExtensionFromMimeType(audioBlob.type)
-            };
+        if (!isSafari || (audioBlob.type && window.isGroqSupportedFormat(audioBlob.type))) {
+            return { blob: audioBlob, extension: this.getFileExtensionFromMimeType(audioBlob.type) };
         }
         
-        // For Safari, convert to MP3 which is well-supported by OpenAI
-        const convertedBlob = new Blob([audioBlob], { type: 'audio/mp3' });
-        
-        return {
-            blob: convertedBlob,
-            extension: 'mp3'
-        };
+        // For Safari, convert to MP3 which is well-supported by Groq
+        console.log('Converting audio to MP3 for better compatibility with Groq');
+        const mp3Blob = new Blob([audioBlob], { type: 'audio/mp3' });
+        return { blob: mp3Blob, extension: 'mp3' };
     }
     
     // Helper to get file extension from MIME type
@@ -414,18 +376,18 @@ class AudioRecorder {
         return 'mp3'; // Default to mp3 for unknown types
     }
     
-    // Transcribe audio using OpenAI's Speech-to-Text API
+    // Transcribe audio using Groq's Whisper API
     async transcribeAudio(audioBlob) {
         try {
             // Show transcription processing indicator
             this.transcriptionProcessing.classList.remove('hidden');
             
             // Get API key from local storage
-            let apiKey = localStorage.getItem('openai_api_key');
+            let apiKey = localStorage.getItem('groq_api_key');
             
             if (!apiKey) {
                 this.transcriptionProcessing.classList.add('hidden');
-                window.showToast("OpenAI API key required. Please add your API key in the settings section below.", true);
+                window.showToast("Groq API key required. Please add your API key in the settings section below.", true);
                 // Scroll to settings section
                 document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
                 return;
@@ -437,25 +399,13 @@ class AudioRecorder {
             // Create unique filename for the audio file
             const fileName = window.generateFileName('aviation-radio', fileExtension);
             
-            // Create FormData for OpenAI API
-            const formData = new FormData();
-            formData.append('file', processedBlob, fileName);
-            formData.append('model', 'whisper-1');
-            formData.append('language', 'en');
-            formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology. Preserve all spelled-out numbers exactly as spoken (e.g. "one two tree" should not be converted to "123"). Aviation communications require numbers to be spoken individually.');
-            
-            // Call OpenAI API
-            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: formData
-            });
-            
-            // Handle API response
-            if (response.ok) {
-                const data = await response.json();
+            try {
+                // Call Groq Whisper API through our ApiService
+                const data = await window.ApiService.transcribeAudioWithGroq(
+                    processedBlob, 
+                    fileName,
+                    'This is a pilot radio communication in standard aviation phraseology. Preserve all spelled-out numbers exactly as spoken (e.g. "one two tree" should not be converted to "123"). Aviation communications require numbers to be spoken individually.'
+                );
                 
                 // Format the transcription text specifically for aviation
                 let formattedText = data.text;
@@ -489,17 +439,11 @@ class AudioRecorder {
                     window.evaluationManager.evaluateResponse(formattedText, true, this.audioBlob);
                 }
                 
-            } else {
-                const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
-                console.error("OpenAI API error:", errorData);
+            } catch (error) {
+                console.error("Groq API error:", error);
                 
-                // Handle API key errors
-                if (response.status === 401) {
-                    localStorage.removeItem('openai_api_key');
-                    window.showToast('Invalid OpenAI API key. Please try again with a valid key.', true);
-                } else {
-                    window.showToast(`Error transcribing audio: ${errorData.error?.message || 'Unknown error'}`, true);
-                }
+                // Show error message
+                window.showToast(`Error transcribing audio: ${error.message}`, true);
                 
                 // Hide processing indicator
                 this.transcriptionProcessing.classList.add('hidden');

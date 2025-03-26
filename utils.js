@@ -34,34 +34,55 @@ window.generateFileName = function(prefix, extension) {
     return `${prefix}-${timestamp}.${extension}`;
 };
 
-// Show a small info panel about the OpenAI API key
-window.showApiKeyInfo = function() {
-    const infoHtml = `
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="api-key-info-modal">
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4">
-                <h2 class="text-xl font-bold mb-4">About OpenAI API Key</h2>
-                <p class="mb-4">
-                    This application uses OpenAI's APIs for both speech-to-text (Whisper) and text generation (GPT-4o).
+// Show a small info panel about the Groq API key
+window.showApiKeyInfo = function(provider) {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modalOverlay.id = 'api-info-modal';
+    
+    // Create modal content
+    modalOverlay.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-bold mb-4">About Groq API Key</h2>
+                <button id="close-api-info" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="prose dark:prose-invert max-w-none">
+                <p>
+                    This application uses Groq's APIs for both speech-to-text (Whisper) and text generation (LLaMA).
+                    To use these features, you need to provide your own Groq API key. The key is stored only in your browser's local storage and is never sent to our servers.
                 </p>
-                <p class="mb-4">
-                    To use these features, you need to provide your own OpenAI API key. The key is stored only in your browser's local storage and is never sent to our servers.
+                <p class="mt-4">
+                    To get a Groq API key:
                 </p>
-                <p class="mb-4">
-                    You can get an API key by signing up at <a href="https://platform.openai.com/signup" target="_blank" class="text-blue-500 underline">platform.openai.com</a>.
-                </p>
-                <div class="flex justify-end">
-                    <button id="close-api-info-btn" class="px-4 py-2 bg-[var(--primary)] text-white rounded-md">
-                        Got it
-                    </button>
-                </div>
+                <ol class="list-decimal list-inside mt-2">
+                    <li>Go to <a href="https://console.groq.com/keys" target="_blank" class="text-blue-500 hover:underline">https://console.groq.com/keys</a></li>
+                    <li>Create an account or sign in</li>
+                    <li>Generate a new API key</li>
+                    <li>Copy and paste it into the API key field</li>
+                </ol>
             </div>
         </div>
     `;
     
-    document.body.insertAdjacentHTML('beforeend', infoHtml);
+    // Add to document
+    document.body.appendChild(modalOverlay);
     
-    document.getElementById('close-api-info-btn').addEventListener('click', () => {
-        document.getElementById('api-key-info-modal').remove();
+    // Add close event
+    document.getElementById('close-api-info').addEventListener('click', () => {
+        document.body.removeChild(modalOverlay);
+    });
+    
+    // Close on click outside
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            document.body.removeChild(modalOverlay);
+        }
     });
 };
 
@@ -124,38 +145,26 @@ window.showMicrophonePermissionModal = function() {
     permissionModal.classList.remove('hidden');
 };
 
-// Helper function to check if a file format is supported by OpenAI's Speech-to-Text API
-window.isOpenAISupportedFormat = function(mimeType) {
-    if (!mimeType) return false;
-    
-    // List of supported formats by OpenAI's Whisper API (as of March 2025)
+// Helper function to check if a file format is supported by Groq's Speech-to-Text API
+window.isGroqSupportedFormat = function(mimeType) {
+    // List of supported formats by Groq's Whisper API (as of March 2025)
     const supportedFormats = [
-        'audio/flac', 
-        'audio/m4a', 
-        'audio/mp3', 
-        'audio/mp4', 
-        'audio/mpeg', 
-        'audio/mpga', 
-        'audio/oga', 
-        'audio/ogg', 
-        'audio/wav', 
-        'audio/webm'
+        'audio/mp3',
+        'audio/mpeg',
+        'audio/mp4',
+        'audio/mpeg4',
+        'audio/m4a',
+        'audio/wav',
+        'audio/wave',
+        'audio/x-wav',
+        'audio/webm',
+        'audio/ogg',
+        'audio/flac'
     ];
     
-    // Check if the mime type is directly supported
-    if (supportedFormats.includes(mimeType.toLowerCase())) {
-        return true;
-    }
-    
-    // Check for partial matches (e.g., 'audio/x-m4a' should match 'audio/m4a')
-    for (const format of supportedFormats) {
-        const formatBase = format.split('/')[1];
-        if (mimeType.toLowerCase().includes(formatBase)) {
-            return true;
-        }
-    }
-    
-    return false;
+    // Check if the MIME type is in the supported list
+    return supportedFormats.some(format => 
+        mimeType.toLowerCase().includes(format.toLowerCase()));
 };
 
 // Initialize dark mode functionality

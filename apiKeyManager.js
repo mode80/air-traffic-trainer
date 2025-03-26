@@ -3,12 +3,12 @@
 class ApiKeyManager {
     constructor() {
         // DOM Elements
-        this.apiKeyInput = document.getElementById('openai-api-key');
+        this.apiKeyInput = document.getElementById('groq-api-key');
+        this.saveApiKeyBtn = document.getElementById('save-groq-api-key');
         this.apiKeyForm = document.getElementById('api-key-form');
         this.apiKeyStatus = document.getElementById('api-key-status');
         this.clearApiKeyBtn = document.getElementById('clear-api-key');
-        this.saveApiKeyBtn = document.getElementById('save-api-key');
-        this.apiKeyInfoBtn = document.getElementById('api-key-info-btn');
+        this.apiKeyInfoBtn = document.getElementById('groq-api-key-info-btn');
         this.apiKeyContainer = document.getElementById('api-key-container');
         
         // Initialize
@@ -17,7 +17,7 @@ class ApiKeyManager {
     
     init() {
         // Load saved API key
-        const savedApiKey = localStorage.getItem('openai_api_key');
+        const savedApiKey = localStorage.getItem('groq_api_key');
         if (savedApiKey) {
             this.apiKeyInput.value = savedApiKey;
         }
@@ -30,39 +30,39 @@ class ApiKeyManager {
     }
     
     setupEventListeners() {
-        // Add save button event listener
+        // Add save button event listener for Groq API key
         this.saveApiKeyBtn.addEventListener('click', () => {
             const apiKey = this.apiKeyInput.value.trim();
             if (apiKey) {
-                localStorage.setItem('openai_api_key', apiKey);
-                window.showToast('API key saved successfully');
+                localStorage.setItem('groq_api_key', apiKey);
+                window.showToast('Groq API key saved successfully');
                 this.updateApiKeyUI();
             } else {
-                localStorage.removeItem('openai_api_key');
-                window.showToast('API key removed');
+                localStorage.removeItem('groq_api_key');
+                window.showToast('Groq API key removed');
                 this.updateApiKeyUI();
             }
         });
         
         // Add clear API key button event listener
         this.clearApiKeyBtn.addEventListener('click', () => {
-            localStorage.removeItem('openai_api_key');
+            localStorage.removeItem('groq_api_key');
             this.apiKeyInput.value = '';
             window.showToast('API key removed');
             this.updateApiKeyUI();
         });
         
-        // Add info button event listener
+        // Add info button event listener for Groq
         this.apiKeyInfoBtn.addEventListener('click', () => {
-            window.showApiKeyInfo();
+            window.showApiKeyInfo('groq');
         });
     }
     
     // Update UI based on API key presence
     updateApiKeyUI() {
-        const hasApiKey = localStorage.getItem('openai_api_key') !== null;
+        const hasGroqKey = localStorage.getItem('groq_api_key') !== null;
         
-        if (hasApiKey) {
+        if (hasGroqKey) {
             // Hide the form, show the minimal clear button
             this.apiKeyForm.classList.add('hidden');
             this.apiKeyStatus.classList.remove('hidden');
@@ -84,3 +84,10 @@ class ApiKeyManager {
 
 // Export the ApiKeyManager class
 window.ApiKeyManager = ApiKeyManager;
+
+// Show API key info based on provider
+window.showApiKeyInfo = function(provider = 'groq') {
+    if (provider === 'groq') {
+        alert('To use speech recognition, you need a Groq API key.\n\n1. Go to https://console.groq.com/keys \n2. Create an account or sign in\n3. Create a new API key\n4. Copy and paste it here\n\nYour API key is stored only in your browser and is never sent to our servers.');
+    }
+};

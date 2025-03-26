@@ -188,13 +188,13 @@ class FeedbackUI {
             "There was an error evaluating your response. Please check your API key or try again later.";
         
         this.feedbackDetails.innerHTML = `
-            <div class="text-red-500 dark:text-red-400">
-                <p>${errorText}</p>
-                <p class="mt-2">If this error persists, please try the following:</p>
-                <ul class="list-disc pl-5 mt-1">
-                    <li>Check your OpenAI API key in the settings</li>
-                    <li>Ensure your OpenAI account has available credits</li>
-                    <li>Try a different browser or clear your cache</li>
+            <div class="p-4 bg-red-100 dark:bg-red-900 rounded-md mb-4">
+                <h3 class="font-bold text-red-800 dark:text-red-300 mb-2">Error Occurred</h3>
+                <p class="text-red-700 dark:text-red-200 mb-2">There was an error processing your response. Please try again.</p>
+                <ul class="list-disc pl-5 text-red-700 dark:text-red-200">
+                    <li>Check your Groq API key in the settings</li>
+                    <li>Ensure your Groq account has available credits</li>
+                    <li>Try again in a few moments</li>
                 </ul>
             </div>
         `;

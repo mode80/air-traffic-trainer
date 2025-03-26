@@ -2,28 +2,28 @@
 
 class ApiService {
     /**
-     * Call OpenAI API to evaluate a pilot's response
+     * Call Groq API to evaluate a pilot's response
      * 
      * @param {String} prompt - The evaluation prompt
-     * @returns {Object} - The parsed JSON response from OpenAI
+     * @returns {Object} - The parsed JSON response from Groq
      * @throws {Error} - If the API call fails
      */
-    static async callOpenAI(prompt) {
+    static async callGroq(prompt) {
         // Get API key
-        const apiKey = localStorage.getItem('openai_api_key');
+        const apiKey = localStorage.getItem('groq_api_key');
         if (!apiKey) {
-            throw new Error("OpenAI API key required. Please add your API key in the settings section below.");
+            throw new Error("Groq API key required. Please add your Groq API key in the settings section below.");
         }
         
-        // Call OpenAI API
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        // Call Groq API
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o',
+                model: 'deepseek-r1-distill-llama-70b',
                 messages: [
                     {
                         role: 'system',
@@ -44,23 +44,98 @@ class ApiService {
             const responseContent = data.choices[0].message.content.trim();
             
             try {
-                // Parse the JSON response
-                return JSON.parse(responseContent);
+                // First try direct JSON parsing
+                try {
+                    return JSON.parse(responseContent);
+                } catch (e) {
+                    console.log("Direct JSON parsing failed, attempting to extract JSON from response");
+                    
+                    // If direct parsing fails, try to extract JSON from the response
+                    // Look for JSON-like patterns in the response
+                    const jsonRegex = /\{[\s\S]*\}/;
+                    const match = responseContent.match(jsonRegex);
+                    
+                    if (match) {
+                        const jsonString = match[0];
+                        console.log("Extracted potential JSON:", jsonString);
+                        return JSON.parse(jsonString);
+                    } else {
+                        console.error("Failed to extract JSON from response:", responseContent);
+                        throw new Error("Failed to parse evaluation response. The API returned an invalid format.");
+                    }
+                }
             } catch (e) {
                 console.error("Failed to parse JSON response:", e);
+                console.error("Raw response:", responseContent);
                 throw new Error("Failed to parse evaluation response. The API returned an invalid format.");
             }
         } else {
             // Handle error response
             const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
-            console.error("OpenAI API error:", errorData);
+            console.error("Groq API error:", errorData);
             
             // Handle API key errors
             if (response.status === 401) {
-                localStorage.removeItem('openai_api_key');
-                throw new Error("Invalid API key. Please check your OpenAI API key in the settings.");
+                localStorage.removeItem('groq_api_key');
+                throw new Error("Invalid Groq API key. Please check your Groq API key in the settings.");
             } else {
-                throw new Error(`Error from OpenAI API: ${errorData.error?.message || 'Unknown error'}`);
+                throw new Error(`Error from Groq API: ${errorData.error?.message || 'Unknown error'}`);
+            }
+        }
+    }
+
+    /**
+     * Call Groq Whisper API to transcribe audio
+     * 
+     * @param {Blob} audioBlob - The audio blob to transcribe
+     * @param {String} fileName - The filename for the audio file
+     * @param {String} prompt - Optional prompt for context or spelling guidance
+     * @returns {Object} - The transcription response from Groq API
+     * @throws {Error} - If the API call fails
+     */
+    static async transcribeAudioWithGroq(audioBlob, fileName, prompt = '') {
+        // Get API key
+        const apiKey = localStorage.getItem('groq_api_key');
+        if (!apiKey) {
+            throw new Error("Groq API key required. Please add your Groq API key in the settings section below.");
+        }
+        
+        // Create FormData for Groq API
+        const formData = new FormData();
+        formData.append('file', audioBlob, fileName);
+        formData.append('model', 'whisper-large-v3-turbo');
+        formData.append('language', 'en');
+        
+        // Add aviation-specific prompt if provided
+        if (prompt) {
+            formData.append('prompt', prompt);
+        } else {
+            formData.append('prompt', 'This is a pilot radio communication in standard aviation phraseology. Preserve all spelled-out numbers exactly as spoken (e.g. "one two tree" should not be converted to "123"). Aviation communications require numbers to be spoken individually.');
+        }
+        
+        // Call Groq API
+        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: formData
+        });
+        
+        // Handle API response
+        if (response.ok) {
+            return await response.json();
+        } else {
+            // Handle error response
+            const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
+            console.error("Groq API error:", errorData);
+            
+            // Handle API key errors
+            if (response.status === 401) {
+                localStorage.removeItem('groq_api_key');
+                throw new Error("Invalid Groq API key. Please check your Groq API key in the settings.");
+            } else {
+                throw new Error(`Error from Groq API: ${errorData.error?.message || 'Unknown error'}`);
             }
         }
     }

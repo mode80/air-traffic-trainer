@@ -610,7 +610,7 @@ class ScenarioManager {
         }
     }
     
-    // Generate a new scenario using OpenAI's GPT-4o model
+    // Generate a new scenario using Groq's LLM model
     async generateScenario() {
         // Show loading indicator
         this.scenarioLoading.classList.remove('hidden');
@@ -646,9 +646,9 @@ class ScenarioManager {
         
         try {
             // Get API key
-            const apiKey = localStorage.getItem('openai_api_key');
+            const apiKey = localStorage.getItem('groq_api_key');
             if (!apiKey) {
-                window.showToast("OpenAI API key required. Please add your API key in the settings section below.", true);
+                window.showToast("Groq API key required. Please add your API key in the settings section below.", true);
                 // Scroll to settings section
                 document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
                 // Fall back to a random sample scenario
@@ -691,15 +691,15 @@ Important requirements:
 
 Generate only ONE scenario object that strictly follows the given structure. Return ONLY valid JSON with no additional explanations or markdown formatting. The entire response should be parseable with JSON.parse().`;
 
-            // Call OpenAI API
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            // Call Groq API
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o',
+                    model: 'llama3-70b-8192',
                     messages: [
                         {
                             role: 'system',
@@ -728,6 +728,16 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
                     try {
                         generatedScenario = JSON.parse(responseContent);
                         console.log("Parsed scenario:", generatedScenario);
+                        
+                        // Handle case where API returns an array instead of a single object
+                        if (Array.isArray(generatedScenario)) {
+                            console.log("API returned an array, using first item");
+                            if (generatedScenario.length > 0) {
+                                generatedScenario = generatedScenario[0];
+                            } else {
+                                throw new Error("API returned an empty array");
+                            }
+                        }
                     } catch (parseError) {
                         console.error("JSON Parse Error:", parseError);
                         console.error("Failed to parse response:", responseContent);
@@ -758,12 +768,12 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
             } else {
                 // Handle error response
                 const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
-                console.error("OpenAI API error:", errorData);
+                console.error("Groq API error:", errorData);
                 
                 // Handle API key errors
                 if (response.status === 401) {
-                    localStorage.removeItem('openai_api_key');
-                    window.showToast("Invalid OpenAI API key. Please check your settings.", true);
+                    localStorage.removeItem('groq_api_key');
+                    window.showToast("Invalid Groq API key. Please check your settings.", true);
                 } else {
                     window.showToast(`Error generating scenario: ${errorData.error?.message || 'Unknown error'}`, true);
                 }

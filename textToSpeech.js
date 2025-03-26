@@ -5,9 +5,18 @@ class TextToSpeechManager {
         this.isPlaying = false;
         this.audioCache = new Map(); // Cache for audio URLs
         this.currentPlayingButton = null;
+        this.currentUtterance = null;
+        
+        // Initialize speech synthesis
+        this.synth = window.speechSynthesis;
+        
+        // Check if speech synthesis is available
+        if (!this.synth) {
+            console.error("Speech synthesis not supported in this browser");
+        }
     }
 
-    // Play ATC speech using OpenAI's text-to-speech API
+    // Play ATC speech using browser's SpeechSynthesis API
     async playATCSpeech(text, buttonElement) {
         if (!text || text.trim() === '') {
             window.showToast('No ATC speech to play', true);
@@ -30,61 +39,72 @@ class TextToSpeechManager {
         }
 
         try {
-            // Check if we have a cached audio for this text
-            if (this.audioCache.has(text)) {
-                this.playAudio(this.audioCache.get(text));
-                return;
+            // Check if speech synthesis is available
+            if (!this.synth) {
+                throw new Error("Speech synthesis not supported in this browser");
             }
-
-            // Get API key
-            const apiKey = localStorage.getItem('openai_api_key');
-            if (!apiKey) {
-                window.showToast("OpenAI API key required for text-to-speech. Please add your API key in the settings section below.", true);
-                // Scroll to settings section
-                document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
-                this.stopPlaying();
-                return;
-            }
-
-            // Show loading toast
-            window.showToast('Generating speech...', false);
-
-            // Call OpenAI API
-            const response = await fetch('https://api.openai.com/v1/audio/speech', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'tts-1', // Using the base TTS model for efficiency
-                    voice: 'onyx',  // Deep male voice, good for ATC
-                    input: text,
-                    speed: 1.1      // Slightly faster than default for ATC realism 
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error occurred' } }));
-                
-                // Handle API key errors
-                if (response.status === 401) {
-                    localStorage.removeItem('openai_api_key');
-                    throw new Error("Invalid OpenAI API key. Please check your settings.");
-                } else {
-                    throw new Error(`Error generating speech: ${errorData.error?.message || 'Unknown error'}`);
+            
+            // Create a new utterance
+            const utterance = new SpeechSynthesisUtterance(text);
+            this.currentUtterance = utterance;
+            
+            // Configure the utterance
+            utterance.rate = 1.1; // Slightly faster than default for ATC realism
+            
+            // Find a suitable voice (preferably a male voice for ATC realism)
+            const voices = this.synth.getVoices();
+            let selectedVoice = null;
+            
+            // Try to find a male US English voice
+            for (const voice of voices) {
+                if (voice.lang.includes('en-US') && voice.name.toLowerCase().includes('male')) {
+                    selectedVoice = voice;
+                    break;
                 }
             }
-
-            // Get audio blob from response
-            const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
             
-            // Cache the audio URL
-            this.audioCache.set(text, audioUrl);
+            // If no male US voice found, try any US voice
+            if (!selectedVoice) {
+                for (const voice of voices) {
+                    if (voice.lang.includes('en-US')) {
+                        selectedVoice = voice;
+                        break;
+                    }
+                }
+            }
             
-            // Play the audio
-            this.playAudio(audioUrl);
+            // If still no voice found, use the default voice
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            // Add event listeners
+            utterance.onstart = () => {
+                this.isPlaying = true;
+            };
+            
+            utterance.onend = () => {
+                this.isPlaying = false;
+                if (this.currentPlayingButton) {
+                    this.currentPlayingButton.classList.remove('playing');
+                    this.currentPlayingButton = null;
+                }
+                this.currentUtterance = null;
+            };
+            
+            utterance.onerror = (event) => {
+                console.error("Speech synthesis error:", event);
+                this.isPlaying = false;
+                if (this.currentPlayingButton) {
+                    this.currentPlayingButton.classList.remove('playing');
+                    this.currentPlayingButton = null;
+                }
+                this.currentUtterance = null;
+                window.showToast(`Error playing speech: ${event.error}`, true);
+            };
+            
+            // Speak the utterance
+            this.synth.speak(utterance);
 
         } catch (err) {
             console.error("Error generating speech:", err);
@@ -93,58 +113,20 @@ class TextToSpeechManager {
         }
     }
 
-    // Play audio from a given URL
-    playAudio(audioUrl) {
-        const audio = new Audio(audioUrl);
-        
-        // Add event listeners
-        audio.addEventListener('play', () => {
-            this.isPlaying = true;
-        });
-        
-        audio.addEventListener('ended', () => {
-            this.stopPlaying();
-        });
-        
-        audio.addEventListener('error', (e) => {
-            console.error('Audio playback error:', e);
-            window.showToast('Error playing audio', true);
-            this.stopPlaying();
-        });
-        
-        // Store reference to audio element for stopping
-        this.currentAudio = audio;
-        
-        // Play the audio
-        audio.play()
-            .then(() => {
-                window.showToast('Playing ATC speech...', false);
-            })
-            .catch(err => {
-                console.error('Error playing audio:', err);
-                
-                // Don't show error toast for NotAllowedError (happens on initial load)
-                if (err.name !== 'NotAllowedError') {
-                    window.showToast('Failed to play audio', true);
-                }
-                
-                this.stopPlaying();
-            });
-    }
-
-    // Stop playing and reset the state
+    // Stop playing audio
     stopPlaying() {
-        this.isPlaying = false;
-        
-        if (this.currentAudio) {
-            this.currentAudio.pause();
-            this.currentAudio = null;
+        if (this.synth && this.isPlaying) {
+            this.synth.cancel(); // Cancel any ongoing speech
         }
+        
+        this.isPlaying = false;
         
         if (this.currentPlayingButton) {
             this.currentPlayingButton.classList.remove('playing');
             this.currentPlayingButton = null;
         }
+        
+        this.currentUtterance = null;
     }
 }
 
@@ -152,6 +134,6 @@ class TextToSpeechManager {
 window.TextToSpeechManager = TextToSpeechManager;
 
 // Initialize the TextToSpeechManager when the window loads
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
     window.textToSpeechManager = new TextToSpeechManager();
 });

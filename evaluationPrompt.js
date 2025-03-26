@@ -2,23 +2,23 @@
 
 class EvaluationPrompt {
     /**
-     * Generates the evaluation prompt for OpenAI API
+     * Generates the evaluation prompt for Groq API
      * 
-     * @param {Object} scenario - The current scenario object
-     * @param {Array} conversationHistory - Array of conversation messages
-     * @param {String} responseText - The pilot's response to evaluate
-     * @param {Boolean} isAudio - Whether the response was from audio recording
+     * @param {Object} scenario - The current scenario
+     * @param {Array} conversationHistory - The conversation history
+     * @param {String} userResponse - The user's response to evaluate
+     * @param {Boolean} isAudio - Whether the response was from audio input
      * @param {Boolean} isEditedResponse - Whether this is an edited response
-     * @returns {String} - The formatted prompt for OpenAI
+     * @returns {String} - The formatted prompt for Groq
      */
-    static generatePrompt(scenario, conversationHistory, responseText, isAudio = false, isEditedResponse = false) {
+    static generatePrompt(scenario, conversationHistory, userResponse, isAudio = false, isEditedResponse = false) {
         // Build weather information for prompt
         const weatherBlock = scenario.weatherInfo && scenario.weatherInfo.trim() !== '' ? 
             `\nWeather Information:\n${scenario.weatherInfo}` : '';
         
         // Add source information
         const sourceInfo = isAudio ? 
-            `\nNote: This response was provided via audio recording and then transcribed.` : 
+            `\nNote: This response was provided via audio input and then transcribed.` : 
             `\nNote: This response was typed directly by the user.`;
         
         // Add edited response information if applicable
@@ -39,7 +39,7 @@ class EvaluationPrompt {
             });
         }
         
-        // Create prompt with proper context for OpenAI to evaluate
+        // Create prompt with proper context for Groq to evaluate
         return `You are an FAA examiner evaluating a pilot's radio communication for a VFR scenario. Rate the following radio call and provide feedback based on standard aviation communication practices:
 
 Scenario: ${scenario.title}
@@ -51,7 +51,7 @@ Flight Info:
 - Airport: ${scenario.airport}${sourceInfo}${editedInfo}
 
 Pilot's actual radio call (ONLY EVALUATE THIS SPECIFIC TRANSMISSION):
-"${responseText}"
+"${userResponse}"
 
 IMPORTANT EVALUATION GUIDELINES:
 1. Allow for situation-appropriate abbreviations and variations as used in real-world radio communications:

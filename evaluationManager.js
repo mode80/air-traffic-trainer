@@ -262,7 +262,7 @@ class EvaluationManager {
         await this.evaluateResponse(text, audioBlob !== null, audioBlob, true);
     }
     
-    // Evaluate user response using OpenAI's GPT-4o model
+    // Evaluate user response using Groq's LLM model
     async evaluateResponse(responseText, isAudio = false, audioBlob = null, isEditedResponse = false) {
         if (!responseText || responseText.trim() === '') {
             window.showToast('Please provide a radio communication before submitting', true);
@@ -291,9 +291,9 @@ class EvaluationManager {
         
         try {
             // Check for API key
-            const apiKey = localStorage.getItem('openai_api_key');
+            const apiKey = localStorage.getItem('groq_api_key');
             if (!apiKey) {
-                window.showToast("OpenAI API key required. Please add your API key in the settings section below.", true);
+                window.showToast("Groq API key required. Please add your API key in the settings section below.", true);
                 // Scroll to settings section
                 document.getElementById('api-key-container').scrollIntoView({ behavior: 'smooth' });
                 // Hide feedback section
@@ -323,8 +323,8 @@ class EvaluationManager {
                 );
             }
             
-            // Call the OpenAI API
-            const feedbackData = await window.ApiService.callOpenAI(prompt);
+            // Call the Groq API
+            const feedbackData = await window.ApiService.callGroq(prompt);
             
             // Store the feedback in the feedback history
             this.feedbackHistory.push({
