@@ -4,8 +4,10 @@ class AudioRecorder {
     constructor() {
         // DOM Elements - use defensive coding to handle possible missing elements
         this.recordBtn = document.getElementById('record-btn');
-        this.stopRecordingBtn = document.getElementById('stop-recording-btn');
-        this.recordingIndicator = document.getElementById('recording-indicator');
+        // We no longer need the stop recording button as the record button now handles both functions
+        // this.stopRecordingBtn = document.getElementById('stop-recording-btn');
+        // We no longer need the recording indicator as we're using button state changes
+        // this.recordingIndicator = document.getElementById('recording-indicator');
         // Audio playback is now handled through the play icon in ATC messages
         this.userResponseTextarea = document.getElementById('user-response');
         this.transcriptionProcessing = document.getElementById('transcription-processing');
@@ -41,8 +43,7 @@ class AudioRecorder {
         this.currentPlayingMessageId = null;
         
         // Check if all required elements are available
-        if (!this.recordBtn || !this.stopRecordingBtn || !this.recordingIndicator || 
-            !this.userResponseTextarea || !this.permissionModal || 
+        if (!this.recordBtn || !this.userResponseTextarea || !this.permissionModal || 
             !this.allowMicBtn || !this.denyMicBtn) {
             console.warn('AudioRecorder: Some required DOM elements are missing');
         }
@@ -76,26 +77,38 @@ class AudioRecorder {
         
         // Recording controls
         if (this.recordBtn) {
+            // Initialize the data-recording attribute
+            this.recordBtn.setAttribute('data-recording', 'false');
+            
             this.recordBtn.addEventListener('click', () => {
-                // Check if we need to ask for permission first
-                const micPref = localStorage.getItem('microphone_preference');
+                // Check if we're currently recording
+                const isRecording = this.recordBtn.getAttribute('data-recording') === 'true';
                 
-                if (micPref === 'granted') {
-                    // Permission already granted, start recording
-                    this.startRecording();
-                } else if (micPref === 'denied') {
-                    // Permission previously denied, show toast
-                    window.showToast('Microphone access is disabled. Please use text input instead.', true);
+                if (isRecording) {
+                    // If we're recording, stop the recording
+                    this.stopRecording();
                 } else {
-                    // Show permission modal
-                    this.permissionModal.classList.remove('hidden');
+                    // If we're not recording, check permissions and start recording
+                    const micPref = localStorage.getItem('microphone_preference');
+                    
+                    if (micPref === 'granted') {
+                        // Permission already granted, start recording
+                        this.startRecording();
+                    } else if (micPref === 'denied') {
+                        // Permission previously denied, show toast
+                        window.showToast('Microphone access is disabled. Please use text input instead.', true);
+                    } else {
+                        // Show permission modal
+                        this.permissionModal.classList.remove('hidden');
+                    }
                 }
             });
         }
         
-        if (this.stopRecordingBtn) {
-            this.stopRecordingBtn.addEventListener('click', () => this.stopRecording());
-        }
+        // We'll still keep this for backward compatibility, but it won't be visible in the UI
+        // if (this.stopRecordingBtn) {
+        //     this.stopRecordingBtn.addEventListener('click', () => this.stopRecording());
+        // }
     }
     
     // Start recording
@@ -122,7 +135,9 @@ class AudioRecorder {
             const timeslice = 500; // milliseconds
             this.mediaRecorder.start(timeslice);
             console.log('MediaRecorder started with timeslice:', timeslice);
-            this.recordingIndicator.classList.remove('hidden');
+            
+            // Update UI to show recording state
+            this.updateRecordingUI(true);
         } catch (err) {
             console.error("Error starting recording:", err);
             window.showToast('Error starting recording. Please try again.', true);
@@ -285,16 +300,39 @@ class AudioRecorder {
     // Update UI during recording
     updateRecordingUI(isRecording) {
         if (isRecording) {
-            // Change record button to red
+            // Change record button to a pulsing red stop button
             this.recordBtn.classList.remove('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
-            this.recordBtn.classList.add('bg-[var(--recording)]', 'hover:bg-red-600');
-        } else {
-            // Reset record button to primary color
-            this.recordBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
-            this.recordBtn.classList.remove('bg-[var(--recording)]', 'hover:bg-red-600');
+            this.recordBtn.classList.add('bg-[var(--recording)]', 'hover:bg-red-600', 'pulse');
             
-            // Hide recording indicator
-            this.recordingIndicator.classList.add('hidden');
+            // Change the icon to a simple square stop icon
+            this.recordBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <rect x="6" y="6" width="12" height="12" stroke-width="2" />
+                </svg>
+            `;
+            
+            // Update title attribute
+            this.recordBtn.title = "Stop recording";
+            
+            // We'll use a data attribute to track state instead of onclick
+            this.recordBtn.setAttribute('data-recording', 'true');
+        } else {
+            // Reset record button to primary color and microphone icon
+            this.recordBtn.classList.add('bg-[var(--primary)]', 'hover:bg-[var(--accent)]');
+            this.recordBtn.classList.remove('bg-[var(--recording)]', 'hover:bg-red-600', 'pulse');
+            
+            // Restore the microphone icon
+            this.recordBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            `;
+            
+            // Update title attribute
+            this.recordBtn.title = "Record your radio call";
+            
+            // Reset the recording state
+            this.recordBtn.setAttribute('data-recording', 'false');
         }
     }
     
