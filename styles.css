@@ -447,3 +447,19 @@ body {
 #next-scenario-btn:active {
     transform: translate(-4px, -50%) scale(0.95);
 }
+
+/* Powered by Groq branding */
+#api-key-form .opacity-60,
+#api-key-status .opacity-60 {
+    filter: grayscale(30%);
+}
+
+.dark #api-key-form .opacity-60,
+.dark #api-key-status .opacity-60 {
+    filter: grayscale(30%) brightness(0.8);
+}
+
+#api-key-form .opacity-60:hover,
+#api-key-status .opacity-60:hover {
+    filter: none;
+}

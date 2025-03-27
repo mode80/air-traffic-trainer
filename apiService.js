@@ -12,7 +12,7 @@ class ApiService {
         // Get API key
         const apiKey = localStorage.getItem('groq_api_key');
         if (!apiKey) {
-            throw new Error("Groq API key required. Please add your Groq API key in the settings section below.");
+            throw new Error("Groq API key required. Please add your Groq API key down below.");
         }
         
         // Call Groq API
@@ -97,7 +97,7 @@ class ApiService {
         // Get API key
         const apiKey = localStorage.getItem('groq_api_key');
         if (!apiKey) {
-            throw new Error("Groq API key required. Please add your Groq API key in the settings section below.");
+            throw new Error("Groq API key required. Please add your Groq API key down below.");
         }
         
         // Create FormData for Groq API

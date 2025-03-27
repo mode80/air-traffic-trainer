@@ -288,11 +288,14 @@
         <div id="api-key-container" class="mt-6 rounded-lg">
             <!-- Settings form - hidden when API key is present -->
             <div id="api-key-form">
-                <h2 class="text-xl font-semibold mb-3">Settings</h2>
                 <div class="mb-4">
-                    <label for="groq-api-key" class="block text-sm font-medium mb-1">Groq API Key <button id="groq-api-key-info-btn" class="text-xs text-blue-500">(Info)</button></label>
+                    <!-- Powered by Groq branding with info icon as label -->
+                    <div class="flex items-center mb-2 opacity-50 hover:opacity-100 transition-opacity">
+                        <button id="groq-api-key-info-btn" class="mr-2 w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs text-[var(--primary)]">i</button>
+                        <img src="pbg.svg" alt="Powered by Groq" class="h-4" />
+                    </div>
                     <div class="flex">
-                        <input type="password" id="groq-api-key" placeholder="Enter your Groq API key" 
+                        <input type="password" id="groq-api-key" placeholder="Groq API Key" 
                             class="flex-grow p-2 border border-[var(--light-border)] dark:border-[var(--dark-border)] rounded-md bg-[var(--light-bg)] dark:bg-[var(--dark-bg)]">
                         <button id="save-groq-api-key" class="ml-2 bg-[var(--primary)] hover:bg-[var(--accent)] text-white font-medium py-2 px-4 rounded-md transition-colors">Save</button>
                     </div>

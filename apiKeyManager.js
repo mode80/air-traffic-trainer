@@ -30,8 +30,8 @@ class ApiKeyManager {
     }
     
     setupEventListeners() {
-        // Add save button event listener for Groq API key
-        this.saveApiKeyBtn.addEventListener('click', () => {
+        // Function to save the API key
+        const saveApiKey = () => {
             const apiKey = this.apiKeyInput.value.trim();
             if (apiKey) {
                 localStorage.setItem('groq_api_key', apiKey);
@@ -41,6 +41,17 @@ class ApiKeyManager {
                 localStorage.removeItem('groq_api_key');
                 window.showToast('Groq API key removed');
                 this.updateApiKeyUI();
+            }
+        };
+        
+        // Add save button event listener for Groq API key
+        this.saveApiKeyBtn.addEventListener('click', saveApiKey);
+        
+        // Add keydown event listener to the input field to handle Enter key
+        this.apiKeyInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                saveApiKey();
             }
         });
         
