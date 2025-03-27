@@ -248,15 +248,9 @@ body {
     display: block !important; 
 }
 
+/* Remove the pulsing circle */
 [data-message-id^="progressive-"] .word-timestamp-container::after {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background-color: rgba(255, 255, 255, 0.7);
-    border-radius: 50%;
-    margin-left: 5px;
-    animation: pulse 1.5s infinite;
+    display: none; /* Hide the pulsing circle */
 }
 
 @keyframes pulse {

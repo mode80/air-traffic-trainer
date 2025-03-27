@@ -207,7 +207,7 @@ class ConversationUI {
                         </button>
                         ` : ''}
                         ${isProgressiveMessage ? '' : `<p>${text}</p>`}
-                        <div class="word-timestamp-container" style="${isProgressiveMessage ? 'min-height: 20px; display: block; padding: 6px 10px;' : 'display: none;'}" data-message-id="${messageId}">
+                        <div class="word-timestamp-container" style="display: none;" data-message-id="${messageId}">
                             ${isProgressiveMessage ? 
                                 `<div class="transcription-placeholder">Listening...</div>` : 
                                 ''}
@@ -338,10 +338,8 @@ class ConversationUI {
         
         console.log(`Displaying ${visibleWords.length} words out of ${wordTimestamps.length} total words`);
         
-        // Always ensure the container is visible with consistent styling
-        container.style.display = 'block';
-        container.style.minHeight = '20px';
-        container.style.padding = '6px 10px';
+        // Keep the container hidden - we don't need to show the progressive transcription
+        container.style.display = 'none';
         
         if (visibleWords.length > 0) {
             const visibleText = visibleWords.map(word => word.text).join(' ');
@@ -352,9 +350,6 @@ class ConversationUI {
             contentElement.textContent = visibleText;
             
             container.appendChild(contentElement);
-            
-            // Force a reflow to ensure the container is visible
-            container.offsetHeight;
             
             // Scroll to bottom to ensure the latest text is visible
             this.scrollToBottom();
