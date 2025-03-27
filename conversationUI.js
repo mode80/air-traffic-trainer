@@ -185,19 +185,16 @@ class ConversationUI {
     }
     
     // Add a pilot message to the conversation
-    addPilotMessage(text, audioBlob = null) {
-        // Show the messages container if it's hidden
-        const interactionMessages = document.getElementById('interaction-messages');
-        if (interactionMessages && interactionMessages.classList.contains('hidden')) {
-            interactionMessages.classList.remove('hidden');
-        }
-        
+    addPilotMessage(text, audioBlob = null, customMessageId = null) {
         // Generate a unique ID for this message
-        const messageId = `pilot-msg-${Date.now()}`;
+        const messageId = customMessageId || 'pilot-' + Date.now();
+        const isProgressiveMessage = messageId.startsWith('progressive-');
         
-        // Create the message element with audio playback button if audio is available
+        console.log(`Adding pilot message with ID: ${messageId}, progressive: ${isProgressiveMessage}`);
+        
+        // Create HTML for the message
         const messageHTML = `
-            <div class="pilot-message mb-3" data-message-id="${messageId}">
+            <div class="pilot-message message-container mb-4" data-message-id="${messageId}">
                 <div class="flex items-start justify-end">
                     <div class="bg-[var(--primary)] text-white rounded-lg p-3 max-w-[85%] relative">
                         ${audioBlob ? `
@@ -209,7 +206,12 @@ class ConversationUI {
                             </svg>
                         </button>
                         ` : ''}
-                        <p>${text}</p>
+                        ${isProgressiveMessage ? '' : `<p>${text}</p>`}
+                        <div class="word-timestamp-container" style="${isProgressiveMessage ? 'min-height: 20px; display: block; padding: 6px 10px;' : 'display: none;'}" data-message-id="${messageId}">
+                            ${isProgressiveMessage ? 
+                                `<div class="transcription-placeholder">Listening...</div>` : 
+                                ''}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -226,31 +228,34 @@ class ConversationUI {
         // Add event listeners for the newly added message
         const messageElement = this.messagesContainer.querySelector(`.pilot-message[data-message-id="${messageId}"]`);
         if (messageElement) {
-            // Single click/tap to show feedback
-            messageElement.addEventListener('click', (e) => {
-                // Don't trigger if clicking on the play button
-                if (e.target.closest('.play-pilot-speech')) return;
+            // Only add click handlers if this is not a progressive message (doesn't start with 'progressive-')
+            if (!isProgressiveMessage) {
+                // Single click/tap to show feedback
+                messageElement.addEventListener('click', (e) => {
+                    // Don't trigger if clicking on the play button
+                    if (e.target.closest('.play-pilot-speech')) return;
+                    
+                    // Get the index of this message in the conversation history
+                    const messageIndex = this.getMessageIndex(messageId);
+                    if (messageIndex !== -1) {
+                        // Show feedback for this message
+                        window.evaluationManager.showFeedbackForMessage(messageIndex);
+                    }
+                });
                 
-                // Get the index of this message in the conversation history
-                const messageIndex = this.getMessageIndex(messageId);
-                if (messageIndex !== -1) {
-                    // Show feedback for this message
-                    window.evaluationManager.showFeedbackForMessage(messageIndex);
-                }
-            });
-            
-            // Double click to edit
-            messageElement.addEventListener('dblclick', (e) => {
-                // Don't trigger if double-clicking on the play button
-                if (e.target.closest('.play-pilot-speech')) return;
-                
-                // Get the index of this message in the conversation history
-                const messageIndex = this.getMessageIndex(messageId);
-                if (messageIndex !== -1) {
-                    // Make this message available for correction
-                    window.evaluationManager.correctPreviousResponse(messageIndex);
-                }
-            });
+                // Double click to edit
+                messageElement.addEventListener('dblclick', (e) => {
+                    // Don't trigger if double-clicking on the play button
+                    if (e.target.closest('.play-pilot-speech')) return;
+                    
+                    // Get the index of this message in the conversation history
+                    const messageIndex = this.getMessageIndex(messageId);
+                    if (messageIndex !== -1) {
+                        // Make this message available for correction
+                        window.evaluationManager.correctPreviousResponse(messageIndex);
+                    }
+                });
+            }
             
             // Add event listener to the play button if it exists
             const playButton = messageElement.querySelector('.play-pilot-speech');
@@ -288,6 +293,93 @@ class ConversationUI {
         const interactionMessages = document.getElementById('interaction-messages');
         if (interactionMessages) {
             interactionMessages.scrollTop = interactionMessages.scrollHeight;
+        }
+    }
+    
+    // Update the word timestamp display for a message
+    updateWordTimestampDisplay(messageId, wordTimestamps, currentTime) {
+        console.log(`Updating word timestamp display for message: ${messageId} with ${wordTimestamps.length} words`);
+        
+        const container = this.messagesContainer.querySelector(`.word-timestamp-container[data-message-id="${messageId}"]`);
+        if (!container) {
+            console.log(`Direct container query failed for message ID: ${messageId}, trying to find by parent element`);
+            // Try to find the container by its parent message element
+            const messageElement = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                console.log(`Found parent message element for ID: ${messageId}`);
+                const altContainer = messageElement.querySelector('.word-timestamp-container');
+                if (altContainer) {
+                    console.log(`Found word timestamp container within message element: ${messageId}`);
+                    // Update the container with the message ID for future reference
+                    altContainer.setAttribute('data-message-id', messageId);
+                    this._updateWordTimestampContent(altContainer, wordTimestamps, currentTime);
+                    return;
+                } else {
+                    console.warn(`No word timestamp container found within message element: ${messageId}`);
+                }
+            } else {
+                console.warn(`Message element not found for ID: ${messageId}`);
+            }
+            console.warn(`Word timestamp container not found for message ID: ${messageId}`);
+            return;
+        }
+        
+        console.log(`Found word timestamp container directly for message ID: ${messageId}`);
+        this._updateWordTimestampContent(container, wordTimestamps, currentTime);
+    }
+    
+    // Helper method to update the content of a word timestamp container
+    _updateWordTimestampContent(container, wordTimestamps, currentTime) {
+        // Clear previous content
+        container.innerHTML = '';
+        
+        // Find words that should be displayed at the current time
+        const visibleWords = wordTimestamps.filter(word => word.start <= currentTime);
+        
+        console.log(`Displaying ${visibleWords.length} words out of ${wordTimestamps.length} total words`);
+        
+        // Always ensure the container is visible with consistent styling
+        container.style.display = 'block';
+        container.style.minHeight = '20px';
+        container.style.padding = '6px 10px';
+        
+        if (visibleWords.length > 0) {
+            const visibleText = visibleWords.map(word => word.text).join(' ');
+            
+            // Create a more visible content with styling
+            const contentElement = document.createElement('div');
+            contentElement.className = 'transcription-text';
+            contentElement.textContent = visibleText;
+            
+            container.appendChild(contentElement);
+            
+            // Force a reflow to ensure the container is visible
+            container.offsetHeight;
+            
+            // Scroll to bottom to ensure the latest text is visible
+            this.scrollToBottom();
+        } else {
+            // Add a placeholder with styling
+            const placeholderElement = document.createElement('div');
+            placeholderElement.className = 'transcription-placeholder';
+            placeholderElement.textContent = 'Listening...';
+            placeholderElement.style.opacity = '0.7';
+            placeholderElement.style.fontStyle = 'italic';
+            
+            container.appendChild(placeholderElement);
+        }
+    }
+    
+    // Clear word timestamp display for a message
+    clearWordTimestampDisplay(messageId) {
+        const container = this.messagesContainer.querySelector(`.word-timestamp-container[data-message-id="${messageId}"]`);
+        if (container) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            container.style.minHeight = '0';
+            container.style.padding = '0';
+            container.style.margin = '0';
+            container.style.border = 'none';
         }
     }
     

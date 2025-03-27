@@ -129,7 +129,7 @@ class EvaluationManager {
     }
     
     // Add a pilot message to the conversation
-    addPilotMessage(text, audioBlob = null) {
+    addPilotMessage(text, audioBlob = null, wordTimestamps = []) {
         // Add to conversation history with a unique message ID
         const messageId = this.conversationUI.addPilotMessage(text, audioBlob);
         
@@ -137,7 +137,8 @@ class EvaluationManager {
             role: 'pilot',
             text: text,
             messageId: messageId,
-            audioBlob: audioBlob
+            audioBlob: audioBlob,
+            wordTimestamps: wordTimestamps
         });
         
         return messageId;
@@ -214,7 +215,7 @@ class EvaluationManager {
     }
     
     // Submit a corrected response
-    async submitCorrectedResponse(text, audioBlob = null) {
+    async submitCorrectedResponse(text, audioBlob = null, wordTimestamps = []) {
         if (this.editingMessageIndex < 0) {
             console.error('No message is being edited');
             return;
@@ -259,11 +260,11 @@ class EvaluationManager {
         
         // Now evaluate the new response and continue the conversation from this point
         // Pass true for isEditedResponse to indicate this is a corrected message
-        await this.evaluateResponse(text, audioBlob !== null, audioBlob, true);
+        await this.evaluateResponse(text, audioBlob !== null, audioBlob, true, wordTimestamps);
     }
     
     // Evaluate user response using Groq's LLM model
-    async evaluateResponse(responseText, isAudio = false, audioBlob = null, isEditedResponse = false) {
+    async evaluateResponse(responseText, isAudio = false, audioBlob = null, isEditedResponse = false, wordTimestamps = []) {
         if (!responseText || responseText.trim() === '') {
             window.showToast('Please provide a radio communication before submitting', true);
             return;
@@ -280,7 +281,12 @@ class EvaluationManager {
         window.hasPeekedOrMadeFirstCall = true;
         
         // Add the pilot's message to the conversation
-        this.addPilotMessage(responseText, audioBlob);
+        const messageId = this.addPilotMessage(responseText, audioBlob, wordTimestamps);
+        
+        // If we have audio and word timestamps, store them for this message
+        if (audioBlob && window.audioRecorder) {
+            window.audioRecorder.storeAudioForMessage(messageId, audioBlob, wordTimestamps);
+        }
         
         // Clear the input field
         this.userResponseInput.value = '';

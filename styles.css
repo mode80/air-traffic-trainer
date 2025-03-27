@@ -215,6 +215,131 @@ body {
     position: relative;
 }
 
+/* Word timestamp container styles */
+.word-timestamp-container {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    font-size: 0.95em;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 200px;
+    opacity: 0.9;
+    border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.word-timestamp-container:empty {
+    display: block; 
+    min-height: 20px; 
+    padding: 6px 10px;
+    margin-top: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Progressive transcription styling */
+[data-message-id^="progressive-"] .word-timestamp-container {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-left: 3px solid rgba(59, 130, 246, 0.7); 
+    position: relative;
+    min-height: 20px; 
+    display: block !important; 
+}
+
+[data-message-id^="progressive-"] .word-timestamp-container::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    margin-left: 5px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.4;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0.4;
+        transform: scale(0.8);
+    }
+}
+
+.dark .word-timestamp-container {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Word animation for progressive display */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.word-timestamp-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Transcription text styling */
+.transcription-text {
+    font-size: 0.95em;
+    line-height: 1.4;
+    color: white;
+    font-weight: 500;
+}
+
+.transcription-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.transcription-placeholder::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+}
+
+/* Ensure progressive transcription containers are always visible */
+[data-message-id^="progressive-"] .word-timestamp-container {
+    display: block !important;
+    min-height: 20px;
+    background-color: rgba(59, 130, 246, 0.2);
+    border-left: 3px solid rgba(59, 130, 246, 0.7);
+    position: relative;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
 /* Prose styles for markdown content */
 .prose {
     color: var(--light-text);
@@ -323,4 +448,8 @@ body {
 
 #next-scenario-btn:hover {
     background-color: #059669; /* Darker green on hover */
+}
+
+#next-scenario-btn:active {
+    transform: translate(-4px, -50%) scale(0.95);
 }

@@ -90,7 +90,7 @@ class ApiService {
      * @param {Blob} audioBlob - The audio blob to transcribe
      * @param {String} fileName - The filename for the audio file
      * @param {String} prompt - Optional prompt for context or spelling guidance
-     * @returns {Object} - The transcription response from Groq API
+     * @returns {Object} - The transcription response from Groq API with word-level timestamps
      * @throws {Error} - If the API call fails
      */
     static async transcribeAudioWithGroq(audioBlob, fileName, prompt = '') {
@@ -105,6 +105,10 @@ class ApiService {
         formData.append('file', audioBlob, fileName);
         formData.append('model', 'whisper-large-v3-turbo');
         formData.append('language', 'en');
+        
+        // Request word-level timestamps in the response
+        formData.append('response_format', 'verbose_json');
+        formData.append('timestamp_granularities[]', 'word'); // Add this parameter to get word-level timestamps
         
         // Add aviation-specific prompt if provided
         if (prompt) {
