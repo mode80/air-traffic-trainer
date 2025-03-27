@@ -4,11 +4,6 @@ class AudioRecorder {
     constructor() {
         // DOM Elements - use defensive coding to handle possible missing elements
         this.recordBtn = document.getElementById('record-btn');
-        // We no longer need the stop recording button as the record button now handles both functions
-        // this.stopRecordingBtn = document.getElementById('stop-recording-btn');
-        // We no longer need the recording indicator as we're using button state changes
-        // this.recordingIndicator = document.getElementById('recording-indicator');
-        // Audio playback is now handled through the play icon in ATC messages
         this.userResponseTextarea = document.getElementById('user-response');
         this.transcriptionProcessing = document.getElementById('transcription-processing');
         this.submitResponseBtn = document.getElementById('submit-response-btn');
@@ -104,11 +99,6 @@ class AudioRecorder {
                 }
             });
         }
-        
-        // We'll still keep this for backward compatibility, but it won't be visible in the UI
-        // if (this.stopRecordingBtn) {
-        //     this.stopRecordingBtn.addEventListener('click', () => this.stopRecording());
-        // }
     }
     
     // Start recording
@@ -372,7 +362,6 @@ class AudioRecorder {
     async processProgressiveTranscription() {
         if (!this.isRecording || this.progressiveChunks.length === 0) return;
         
-        console.log('Processing progressive transcription with', this.progressiveChunks.length, 'chunks');
         this._processingProgressiveChunk = true; // Set flag to prevent concurrent processing
         
         try {
@@ -386,7 +375,6 @@ class AudioRecorder {
             }
             
             const currentBlob = new Blob(this.progressiveChunks, blobOptions);
-            console.log('Created blob for progressive transcription, size:', currentBlob.size, 'bytes');
             
             // Get API key from local storage
             let apiKey = localStorage.getItem('groq_api_key');
@@ -402,7 +390,6 @@ class AudioRecorder {
             // Create unique filename for the audio file
             const fileName = window.generateFileName('aviation-radio-chunk', fileExtension);
             
-            console.log('Calling Groq API for progressive transcription...');
             // Call Groq Whisper API through our ApiService
             const data = await window.ApiService.transcribeAudioWithGroq(
                 processedBlob, 
@@ -410,15 +397,11 @@ class AudioRecorder {
                 'This is a pilot radio communication in standard aviation phraseology. Preserve all spelled-out numbers exactly as spoken (e.g. "one two tree" should not be converted to "123"). Aviation communications require numbers to be spoken individually.'
             );
             
-            console.log('Received transcription data:', data);
-            
             // Extract word-level timestamps if available
             let wordTimestamps = [];
             
             // Check for words in the new format (timestamp_granularities[] parameter)
             if (data.words && Array.isArray(data.words)) {
-                console.log('Found', data.words.length, 'words with timestamps in words array');
-                
                 wordTimestamps = data.words.map(word => ({
                     text: word.word,
                     start: 0, // Set all start times to 0 for progressive display
@@ -430,8 +413,6 @@ class AudioRecorder {
                 const segments = data.segments;
                 for (const segment of segments) {
                     if (segment.words && Array.isArray(segment.words)) {
-                        console.log('Found words with timestamps in segments');
-                        
                         const segmentWords = segment.words.map(word => ({
                             text: word.word,
                             start: 0, // Set all start times to 0 for progressive display
@@ -444,7 +425,6 @@ class AudioRecorder {
             }
             // If no word timestamps found, create them from the text
             else if (data.text) {
-                console.log('No word timestamps found, creating from text');
                 const words = data.text.trim().split(/\s+/);
                 wordTimestamps = words.map((word, index) => ({
                     text: word,
@@ -456,7 +436,6 @@ class AudioRecorder {
             if (wordTimestamps.length > 0) {
                 // Update the progressive message with the current transcription
                 if (window.conversationUI && this.progressiveMessageId) {
-                    console.log('Updating word timestamp display for message:', this.progressiveMessageId, 'with', wordTimestamps.length, 'words');
                     window.conversationUI.updateWordTimestampDisplay(
                         this.progressiveMessageId,
                         wordTimestamps,

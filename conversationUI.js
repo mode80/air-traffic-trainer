@@ -190,8 +190,6 @@ class ConversationUI {
         const messageId = customMessageId || 'pilot-' + Date.now();
         const isProgressiveMessage = messageId.startsWith('progressive-');
         
-        console.log(`Adding pilot message with ID: ${messageId}, progressive: ${isProgressiveMessage}`);
-        
         // Create HTML for the message
         const messageHTML = `
             <div class="pilot-message message-container mb-4" data-message-id="${messageId}">
@@ -298,18 +296,13 @@ class ConversationUI {
     
     // Update the word timestamp display for a message
     updateWordTimestampDisplay(messageId, wordTimestamps, currentTime) {
-        console.log(`Updating word timestamp display for message: ${messageId} with ${wordTimestamps.length} words`);
-        
         const container = this.messagesContainer.querySelector(`.word-timestamp-container[data-message-id="${messageId}"]`);
         if (!container) {
-            console.log(`Direct container query failed for message ID: ${messageId}, trying to find by parent element`);
             // Try to find the container by its parent message element
             const messageElement = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
             if (messageElement) {
-                console.log(`Found parent message element for ID: ${messageId}`);
                 const altContainer = messageElement.querySelector('.word-timestamp-container');
                 if (altContainer) {
-                    console.log(`Found word timestamp container within message element: ${messageId}`);
                     // Update the container with the message ID for future reference
                     altContainer.setAttribute('data-message-id', messageId);
                     this._updateWordTimestampContent(altContainer, wordTimestamps, currentTime);
@@ -324,7 +317,6 @@ class ConversationUI {
             return;
         }
         
-        console.log(`Found word timestamp container directly for message ID: ${messageId}`);
         this._updateWordTimestampContent(container, wordTimestamps, currentTime);
     }
     
@@ -335,8 +327,6 @@ class ConversationUI {
         
         // Find words that should be displayed at the current time
         const visibleWords = wordTimestamps.filter(word => word.start <= currentTime);
-        
-        console.log(`Displaying ${visibleWords.length} words out of ${wordTimestamps.length} total words`);
         
         // Keep the container hidden - we don't need to show the progressive transcription
         container.style.display = 'none';
