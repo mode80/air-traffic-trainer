@@ -296,6 +296,11 @@ class AudioRecorder {
                     }
                     this.progressiveMessageId = null;
                 }
+                
+                // Focus on the input textbox after recording stops
+                if (this.userResponseTextarea) {
+                    this.userResponseTextarea.focus();
+                }
             } else {
                 // No text from progressive transcription, so do the full transcription
                 this.transcribeAudio(this.audioBlob);
@@ -702,6 +707,11 @@ class AudioRecorder {
                     
                     // Show a toast notification to inform the user they can edit before submitting
                     window.showToast('You can edit the text before submitting your response', false);
+                    
+                    // Focus on the input textbox after transcription is complete
+                    if (this.userResponseTextarea) {
+                        this.userResponseTextarea.focus();
+                    }
                 }
                 
             } catch (error) {
