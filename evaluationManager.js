@@ -264,11 +264,22 @@ class EvaluationManager {
     }
     
     // Evaluate user response using Groq's LLM model
-    async evaluateResponse(responseText, isAudio = false, audioBlob = null, isEditedResponse = false, wordTimestamps = []) {
+    async evaluateResponse(responseText, isFromAudio = false, audioBlob = null, isEditedResponse = false, wordTimestamps = []) {
+        // Don't process empty responses
         if (!responseText || responseText.trim() === '') {
             window.showToast('Please provide a radio communication before submitting', true);
             return;
         }
+        
+        // If no audio blob was provided but we have one stored in the audioRecorder, use that
+        if (!audioBlob && window.audioRecorder && window.audioRecorder.currentAudioBlob) {
+            audioBlob = window.audioRecorder.currentAudioBlob;
+            wordTimestamps = window.audioRecorder.currentWordTimestamps || [];
+            isFromAudio = true;
+        }
+        
+        // Disable the submit button to prevent multiple submissions
+        this.submitResponseBtn.disabled = true;
         
         // Get the current scenario
         const currentScenario = window.scenarioManager.getCurrentScenario();
@@ -291,9 +302,13 @@ class EvaluationManager {
         // Clear the input field
         this.userResponseInput.value = '';
         
+        // Reset current audio data in the audioRecorder
+        if (window.audioRecorder) {
+            window.audioRecorder.resetCurrentAudioData();
+        }
+        
         // Show feedback section with loading state
         this.feedbackUI.showLoading();
-        this.submitResponseBtn.disabled = true;
         
         try {
             // Check for API key
@@ -317,7 +332,7 @@ class EvaluationManager {
                     currentScenario, 
                     this.conversationHistory,
                     responseText, 
-                    isAudio,
+                    isFromAudio,
                     true // Add flag for edited response
                 );
             } else {
@@ -325,7 +340,7 @@ class EvaluationManager {
                     currentScenario, 
                     this.conversationHistory,
                     responseText, 
-                    isAudio
+                    isFromAudio
                 );
             }
             

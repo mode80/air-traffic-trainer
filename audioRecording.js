@@ -31,6 +31,8 @@ class AudioRecorder {
         // Audio storage for message history
         this.storedAudio = new Map(); // Map of messageId -> {blob, url, wordTimestamps}
         this.currentPlayingAudio = null;
+        this.currentAudioBlob = null;
+        this.currentWordTimestamps = null;
         
         // Word-level timestamp data
         this.wordTimestamps = [];
@@ -209,26 +211,23 @@ class AudioRecorder {
             this.audioChunks = [];
             this.progressiveChunks = [];
             
-            // Generate a unique ID for the progressive message
+            // Generate a unique ID for the progressive message, but don't create the message
+            // We'll just use this ID to track the current recording session
             this.progressiveMessageId = 'progressive-' + Date.now();
             
-            // Make sure the interaction-messages container is visible before adding the pilot message
+            // Make sure the interaction-messages container is visible
             const interactionMessages = document.getElementById('interaction-messages');
             if (interactionMessages && interactionMessages.classList.contains('hidden')) {
                 interactionMessages.classList.remove('hidden');
             }
             
-            // Add an empty pilot message for progressive display if enabled
+            // Clear the text input field to prepare for new transcription
+            if (this.userResponseTextarea) {
+                this.userResponseTextarea.value = '';
+            }
+            
+            // Set up interval to process chunks every 1 second (reduced from 2 seconds)
             if (this.progressiveTranscriptionEnabled) {
-                if (window.conversationUI) {
-                    console.log('Creating progressive message with ID:', this.progressiveMessageId);
-                    window.conversationUI.addPilotMessage('', null, this.progressiveMessageId);
-                } else {
-                    console.warn('ConversationUI not available for progressive transcription');
-                    this.progressiveTranscriptionEnabled = false;
-                }
-                
-                // Set up interval to process chunks every 1 second (reduced from 2 seconds)
                 this.progressiveTranscriptionInterval = setInterval(() => {
                     this.processProgressiveTranscription();
                 }, 1000);
@@ -276,8 +275,31 @@ class AudioRecorder {
             // Update UI
             this.updateRecordingUI(false);
             
-            // Transcribe audio
-            this.transcribeAudio(this.audioBlob);
+            // Check if we already have text from progressive transcription
+            if (this.userResponseTextarea && this.userResponseTextarea.value.trim() !== '') {
+                // We already have text from progressive transcription, so just store the audio blob
+                this.currentAudioBlob = this.audioBlob;
+                
+                // Enable the submit button
+                if (this.submitResponseBtn) {
+                    this.submitResponseBtn.disabled = false;
+                }
+                
+                // Show a toast notification to inform the user they can edit before submitting
+                window.showToast('You can edit the text before submitting your response', false);
+                
+                // Remove the progressive message if it exists
+                if (this.progressiveMessageId && window.conversationUI) {
+                    const progressiveElement = document.querySelector(`.pilot-message[data-message-id="${this.progressiveMessageId}"]`);
+                    if (progressiveElement) {
+                        progressiveElement.remove();
+                    }
+                    this.progressiveMessageId = null;
+                }
+            } else {
+                // No text from progressive transcription, so do the full transcription
+                this.transcribeAudio(this.audioBlob);
+            }
         };
         
         // Enable record button
@@ -340,6 +362,10 @@ class AudioRecorder {
             URL.revokeObjectURL(this.audioURL);
             this.audioURL = null;
         }
+        
+        // Clear current audio blob and word timestamps
+        this.currentAudioBlob = null;
+        this.currentWordTimestamps = null;
         
         this.audioBlob = null;
         this.audioChunks = [];
@@ -434,15 +460,18 @@ class AudioRecorder {
             }
             
             if (wordTimestamps.length > 0) {
-                // Update the progressive message with the current transcription
+                // Get the full text from the word timestamps
+                const transcribedText = wordTimestamps.map(word => word.text).join(' ');
+                
+                // Update the text input field with the current transcription
+                if (this.userResponseTextarea) {
+                    this.userResponseTextarea.value = transcribedText;
+                }
+                
+                // Keep the progressive message ID for when we finalize the transcription
                 if (window.conversationUI && this.progressiveMessageId) {
-                    window.conversationUI.updateWordTimestampDisplay(
-                        this.progressiveMessageId,
-                        wordTimestamps,
-                        Number.MAX_VALUE // Show all words that have been transcribed so far
-                    );
-                } else if (!window.conversationUI) {
-                    console.warn('ConversationUI not available for progressive transcription');
+                    // We'll still keep the progressive message ID, but we won't update its content
+                    // until the user stops recording
                 }
             } else {
                 console.warn('No word timestamps found in transcription data');
@@ -664,10 +693,15 @@ class AudioRecorder {
                     // Submit the corrected response with the new audio and word timestamps
                     window.evaluationManager.submitCorrectedResponse(formattedText, this.audioBlob, wordTimestamps);
                 } 
-                // If we're in a conversation and the conversation is not complete, automatically submit the response
-                else if (window.evaluationManager && !window.evaluationManager.conversationComplete) {
-                    // Call the evaluateResponse method with the transcribed text, the audio blob, and word timestamps
-                    window.evaluationManager.evaluateResponse(formattedText, true, this.audioBlob, wordTimestamps);
+                // Don't automatically submit the response, let the user edit and submit manually
+                // Store the audio blob and word timestamps for later submission
+                else {
+                    // Store the current audio blob and word timestamps for later use when the user submits
+                    this.currentAudioBlob = this.audioBlob;
+                    this.currentWordTimestamps = wordTimestamps;
+                    
+                    // Show a toast notification to inform the user they can edit before submitting
+                    window.showToast('You can edit the text before submitting your response', false);
                 }
                 
             } catch (error) {
@@ -704,6 +738,12 @@ class AudioRecorder {
         });
         
         console.log(`Stored audio for message ${messageId} with ${wordTimestamps.length} word timestamps`);
+    }
+    
+    // Reset current audio data after submission
+    resetCurrentAudioData() {
+        this.currentAudioBlob = null;
+        this.currentWordTimestamps = null;
     }
     
     // Helper method to ensure audio blob is in a format supported by Groq
