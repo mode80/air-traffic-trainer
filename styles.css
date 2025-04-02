@@ -446,7 +446,7 @@ body {
 }
 
 #next-scenario-btn:active {
-    transform: translate(-4px, -50%) scale(0.95);
+    transform: scale(0.98);
 }
 
 /* Powered by Groq branding */
