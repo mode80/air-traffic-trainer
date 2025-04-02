@@ -99,6 +99,6 @@ window.ApiKeyManager = ApiKeyManager;
 // Show API key info based on provider
 window.showApiKeyInfo = function(provider = 'groq') {
     if (provider === 'groq') {
-        alert('To use speech recognition, you need a Groq API key.\n\n1. Go to https://console.groq.com/keys \n2. Create an account or sign in\n3. Create a new API key\n4. Copy and paste it here\n\nYour API key is stored only in your browser and is never sent to our servers.');
+        alert('To use speech recognition and text-to-speech features, you need a Groq API key.\n\n1. Go to https://console.groq.com/keys \n2. Create an account or sign in\n3. Create a new API key\n4. Copy and paste it here\n\nYour API key is stored only in your browser and is never sent to our servers.');
     }
 };
