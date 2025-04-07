@@ -231,7 +231,7 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
                     'Authorization': `Bearer ${apiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'llama3-70b-8192',
+                    model: 'deepseek-r1-distill-llama-70b',
                     messages: [
                         {
                             role: 'system',
@@ -258,16 +258,44 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
                     // Parse the JSON response
                     let generatedScenario;
                     try {
-                        generatedScenario = JSON.parse(responseContent);
-                        console.log('Parsed scenario:', generatedScenario);
-                        
-                        // Handle case where API returns an array instead of a single object
-                        if (Array.isArray(generatedScenario)) {
-                            console.log('API returned an array, using first item');
-                            if (generatedScenario.length > 0) {
-                                generatedScenario = generatedScenario[0];
+                        // First try direct JSON parsing
+                        try {
+                            generatedScenario = JSON.parse(responseContent);
+                            console.log('Parsed scenario:', generatedScenario);
+                            
+                            // Handle case where API returns an array instead of a single object
+                            if (Array.isArray(generatedScenario)) {
+                                console.log('API returned an array, using first item');
+                                if (generatedScenario.length > 0) {
+                                    generatedScenario = generatedScenario[0];
+                                } else {
+                                    throw new Error('API returned an empty array');
+                                }
+                            }
+                        } catch (initialParseError) {
+                            console.log("Direct JSON parsing failed, attempting to extract JSON from response");
+                            
+                            // If direct parsing fails, try to extract JSON from the response
+                            // Look for JSON-like patterns in the response
+                            const jsonRegex = /\{[\s\S]*\}/;
+                            const match = responseContent.match(jsonRegex);
+                            
+                            if (match) {
+                                const jsonString = match[0];
+                                console.log("Extracted potential JSON:", jsonString);
+                                generatedScenario = JSON.parse(jsonString);
+                                
+                                // Handle case where API returns an array instead of a single object
+                                if (Array.isArray(generatedScenario)) {
+                                    console.log('API returned an array, using first item');
+                                    if (generatedScenario.length > 0) {
+                                        generatedScenario = generatedScenario[0];
+                                    } else {
+                                        throw new Error('API returned an empty array');
+                                    }
+                                }
                             } else {
-                                throw new Error('API returned an empty array');
+                                throw initialParseError; // Re-throw if no JSON pattern found
                             }
                         }
                     } catch (parseError) {

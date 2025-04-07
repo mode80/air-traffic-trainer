@@ -66,7 +66,8 @@ IMPORTANT EVALUATION GUIDELINES:
    - Expect frequencies to be spoken with "point" or "decimal" (e.g., "one one niner point eight")
 
 3. Focus only on content that matters in verbal communications:
-   - IGNORE capitalization, punctuation, and typos in the evaluation
+   - IGNORE capitalization, punctuation, typos, and spelling errors in the evaluation
+   - COMPLETELY DISREGARD spelling errors like 'decend' vs 'descend' or 'fife' vs 'five'
    - Focus on whether the essential information is communicated
    - Consider whether the communication would be clear to ATC or other pilots
    - "November" is optional for tail numbers
