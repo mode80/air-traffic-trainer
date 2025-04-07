@@ -1,6 +1,7 @@
 // API Service for Air Traffic Trainer
 
 class ApiService {
+    
     /**
      * Call Groq API to evaluate a pilot's response
      * 
@@ -44,9 +45,11 @@ class ApiService {
             const responseContent = data.choices[0].message.content.trim();
             
             try {
+                let parsedResponse;
+                
                 // First try direct JSON parsing
                 try {
-                    return JSON.parse(responseContent);
+                    parsedResponse = JSON.parse(responseContent);
                 } catch (e) {
                     console.log("Direct JSON parsing failed, attempting to extract JSON from response");
                     
@@ -58,12 +61,18 @@ class ApiService {
                     if (match) {
                         const jsonString = match[0];
                         console.log("Extracted potential JSON:", jsonString);
-                        return JSON.parse(jsonString);
+                        parsedResponse = JSON.parse(jsonString);
                     } else {
                         console.error("Failed to extract JSON from response:", responseContent);
                         throw new Error("Failed to parse evaluation response. The API returned an invalid format.");
                     }
                 }
+                
+                // Remove commas from atcResponse field - do this once after successful parsing
+                if (parsedResponse && parsedResponse.atcResponse) {
+                    parsedResponse.atcResponse = parsedResponse.atcResponse.replace(/,/g, '');
+                }
+                return parsedResponse;
             } catch (e) {
                 console.error("Failed to parse JSON response:", e);
                 console.error("Raw response:", responseContent);

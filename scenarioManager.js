@@ -284,6 +284,11 @@ Generate only ONE scenario object that strictly follows the given structure. Ret
                         throw new Error(`Invalid scenario format: ${validationResult.errors.join(', ')}`);
                     }
                     
+                    // Remove commas from atcCall field if it exists - do this once after successful validation
+                    if (generatedScenario.atcCall && typeof generatedScenario.atcCall === 'string') {
+                        generatedScenario.atcCall = generatedScenario.atcCall.replace(/,/g, '');
+                    }
+                    
                     // Use the generated scenario
                     this.currentScenario = generatedScenario;
                     
