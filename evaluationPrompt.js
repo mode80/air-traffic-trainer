@@ -75,9 +75,13 @@ IMPORTANT EVALUATION GUIDELINES:
 
 4. Be lenient on word order when all required information is present and the meaning is clear. 
 
-5. Conversation Completion Guidelines: 
-   - Mark the conversation as complete when the exchange has reached a natural conclusion
-   - If no further ATC response is needed or appropriate, set atcResponse to "" (empty string) AND set conversationComplete to true
+5. Conversation Continuation Guidelines: 
+   - Mark the conversation as complete ONLY when the exchange has reached a natural conclusion and no further communication is expected
+   - For towered airports, continue the conversation until the aircraft has landed, been handed off, or explicitly dismissed
+   - For arriving aircraft, the conversation typically includes: initial contact, approach/pattern instructions, landing clearance, and taxi instructions
+   - For departing aircraft, the conversation typically includes: initial contact, taxi instructions, takeoff clearance, and departure instructions/handoff
+   - If further ATC response is expected in real-world operations, provide that response and set conversationComplete to false
+   - Only set atcResponse to "" (empty string) AND conversationComplete to true when the scenario has truly concluded
 
 Please evaluate ONLY THE MOST RECENT pilot radio call and provide:
 1. A letter grade (A, B, C, D, F) and percentage score (0-100%) for THIS SPECIFIC TRANSMISSION
